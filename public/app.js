@@ -32,146 +32,21 @@
     return { h: get("hour"), m: get("minute"), s: get("second") };
   }
 
-  /* ---------------- Đồng hồ: Three.js + GSAP ---------------- */
-  function initClock() {
-    const host = $("#clock-canvas");
+  /* ---------------- Đồng hồ số (chữ) ---------------- */
+  function initClockText() {
     const digital = $("#clock-digital");
     const dateEl = $("#clock-date");
     const pad = (n) => String(n).padStart(2, "0");
 
-    const hasWebGL = (() => {
-      try { return !!document.createElement("canvas").getContext("webgl"); } catch { return false; }
-    })();
-
-    const pose = { h: 0, m: 0, s: 0 }; // độ, quay theo chiều kim đồng hồ
-    let ready = false;
-    let hands = null;
-
-    if (window.THREE && window.gsap && hasWebGL) {
-      const scene = new THREE.Scene();
-      const camera = new THREE.PerspectiveCamera(35, 1, 0.1, 100);
-      camera.position.set(0, 0, 9);
-
-      const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
-      renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
-      host.append(renderer.domElement);
-
-      scene.add(new THREE.AmbientLight(0xffffff, 0.65));
-      const key = new THREE.DirectionalLight(0xffffff, 0.9);
-      key.position.set(3, 4, 6);
-      scene.add(key);
-
-      const clock = new THREE.Group();
-      scene.add(clock);
-
-      const face = new THREE.Mesh(
-        new THREE.CylinderGeometry(2.4, 2.4, 0.3, 72).rotateX(Math.PI / 2),
-        new THREE.MeshStandardMaterial({ color: 0x2b3a50, metalness: 0.25, roughness: 0.65 })
-      );
-      clock.add(face);
-
-      const bezel = new THREE.Mesh(
-        new THREE.TorusGeometry(2.45, 0.12, 20, 120),
-        new THREE.MeshStandardMaterial({ color: 0xf2b84b, metalness: 0.7, roughness: 0.3 })
-      );
-      bezel.position.z = 0.02;
-      clock.add(bezel);
-
-      const tickMat = new THREE.MeshStandardMaterial({ color: 0xe8edf4, roughness: 0.5 });
-      for (let i = 0; i < 60; i++) {
-        const major = i % 5 === 0;
-        const tick = new THREE.Mesh(new THREE.BoxGeometry(major ? 0.1 : 0.04, major ? 0.28 : 0.12, 0.05), tickMat);
-        const a = (i / 60) * Math.PI * 2;
-        const r = major ? 2.0 : 2.08;
-        tick.position.set(Math.sin(a) * r, Math.cos(a) * r, 0.18);
-        tick.rotation.z = -a;
-        clock.add(tick);
-      }
-
-      const makeHand = (length, width, color, z) => {
-        const group = new THREE.Group();
-        const mesh = new THREE.Mesh(
-          new THREE.BoxGeometry(width, length, 0.06),
-          new THREE.MeshStandardMaterial({ color, roughness: 0.4, metalness: 0.2 })
-        );
-        mesh.position.y = length / 2 - 0.15;
-        group.position.z = z;
-        group.add(mesh);
-        clock.add(group);
-        return group;
-      };
-
-      hands = {
-        h: makeHand(1.2, 0.14, 0xe8edf4, 0.22),
-        m: makeHand(1.8, 0.09, 0xe8edf4, 0.26),
-        s: makeHand(2.05, 0.035, 0xf2b84b, 0.30),
-      };
-
-      const cap = new THREE.Mesh(
-        new THREE.SphereGeometry(0.11, 24, 24),
-        new THREE.MeshStandardMaterial({ color: 0xf2b84b, metalness: 0.6, roughness: 0.3 })
-      );
-      cap.position.z = 0.34;
-      clock.add(cap);
-
-      const resize = () => {
-        const w = host.clientWidth || 300;
-        renderer.setSize(w, w, false);
-      };
-      new ResizeObserver(resize).observe(host);
-      resize();
-
-      gsap.ticker.add(() => {
-        hands.h.rotation.z = -THREE.MathUtils.degToRad(pose.h);
-        hands.m.rotation.z = -THREE.MathUtils.degToRad(pose.m);
-        hands.s.rotation.z = -THREE.MathUtils.degToRad(pose.s);
-        renderer.render(scene, camera);
-      });
-
-      if (!reduceMotion) {
-        gsap.from(clock.scale, { x: 0.6, y: 0.6, z: 0.6, duration: 0.9, ease: "back.out(1.7)" });
-        gsap.from(clock.rotation, { y: -0.9, duration: 1.1, ease: "power3.out" });
-
-        const tiltY = gsap.quickTo(clock.rotation, "y", { duration: 0.6, ease: "power3.out" });
-        const tiltX = gsap.quickTo(clock.rotation, "x", { duration: 0.6, ease: "power3.out" });
-        window.addEventListener("pointermove", (e) => {
-          tiltY(((e.clientX / window.innerWidth) - 0.5) * 0.5);
-          tiltX(((e.clientY / window.innerHeight) - 0.5) * 0.35);
-        });
-      }
-      ready = true;
-    } else {
-      host.hidden = true;
-    }
-
-    const unwrap = (prev, target) => target + Math.round((prev - target) / 360) * 360;
-
-    let first = true;
-    function tick() {
+    const tick = () => {
       const { h, m, s } = vnTimeParts();
       digital.textContent = `${pad(h)}:${pad(m)}:${pad(s)}`;
-
-      if (ready) {
-        const target = {
-          s: unwrap(pose.s, s * 6),
-          m: unwrap(pose.m, m * 6 + s * 0.1),
-          h: unwrap(pose.h, (h % 12) * 30 + m * 0.5),
-        };
-        if (first || reduceMotion) {
-          Object.assign(pose, target);
-          first = false;
-        } else {
-          gsap.to(pose, { s: target.s, duration: 0.4, ease: "back.out(3)", overwrite: "auto" });
-          gsap.to(pose, { m: target.m, h: target.h, duration: 0.6, ease: "power2.out" });
-        }
-      }
-    }
-
-    function renderDate() {
+    };
+    const renderDate = () => {
       dateEl.textContent = new Date().toLocaleDateString("vi-VN", {
         timeZone: TZ, weekday: "long", day: "numeric", month: "numeric", year: "numeric",
       });
-    }
+    };
 
     tick();
     renderDate();
@@ -383,7 +258,8 @@
       .catch((err) => list.replaceChildren(el("p", { class: "empty", text: err.message })));
   }
 
-  initClock();
+  window.WS = { TZ, reduceMotion, vnTimeParts };
+  initClockText();
   initEntries();
   initNotes();
   initFrames();
