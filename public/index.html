@@ -10,10 +10,11 @@
   <link rel="stylesheet" href="/style.css" />
 </head>
 <body>
-  <main class="workspace">
+  <div id="space" class="space"></div>
 
-    <section class="panel clock-panel" aria-label="Đồng hồ">
-      <div id="clock-canvas" class="clock-canvas" role="img" aria-label="Đồng hồ kim 3D"></div>
+  <main id="stage" class="stage">
+
+    <section class="panel clock-info" id="p-clock" aria-label="Đồng hồ">
       <p id="clock-digital" class="clock-digital">--:--:--</p>
       <p id="clock-date" class="clock-date"></p>
     </section>
@@ -49,8 +50,8 @@
           </thead>
           <tbody id="portal-body"></tbody>
         </table>
+        <p id="portal-empty" class="empty" hidden>Chưa có thông tin nào. Nhập thông tin ở bảng bên cạnh để bắt đầu.</p>
       </div>
-      <p id="portal-empty" class="empty" hidden>Chưa có thông tin nào. Nhập thông tin ở bảng bên trên để bắt đầu.</p>
     </section>
 
     <section class="panel notes-panel" aria-labelledby="notes-title">
@@ -65,8 +66,16 @@
 
   </main>
 
+  <nav id="dock" class="dock" aria-label="Điều hướng không gian">
+    <button id="nav-prev" class="dock-arrow" type="button" aria-label="Bảng trước">‹</button>
+    <div id="dock-items" class="dock-items"></div>
+    <button id="nav-next" class="dock-arrow" type="button" aria-label="Bảng tiếp theo">›</button>
+  </nav>
+
   <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
   <script src="https://unpkg.com/three@0.137.5/build/three.min.js"></script>
+  <script src="https://unpkg.com/three@0.137.5/examples/js/renderers/CSS3DRenderer.js"></script>
   <script src="/app.js"></script>
+  <script src="/space.js"></script>
 </body>
 </html>
