@@ -1,32 +1,72 @@
 <!DOCTYPE html>
 <html lang="vi">
 <head>
-<title>Ghi chú trong tuần</title>
-<link rel="stylesheet" href="/style.css">
-<script src="/app.js"></script>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Không gian làm việc</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/style.css" />
 </head>
 <body>
-<div class="div0">
-<h1>Thứ 2</h1>
-<!--<p>Nội dung</p> -->
-  <label for="content1">Nội dung:</label><br> <br>
-  <input type="text" class="custom-input" id="content1" name="content1" placeholder="Nhập nội dung..."> <br>
-  <label for="note1">Lưu ý:</label><br> <br>
-  <input type="text" class="custom-input" id="note1" name="note1" placeholder="Nhập lưu ý..."> <br> <br>
-  <button id="ok" class="buton">Lưu</button>
+  <main class="workspace">
 
-<form action="/action_page.php">
+    <section class="panel clock-panel" aria-label="Đồng hồ">
+      <div id="clock-canvas" class="clock-canvas" role="img" aria-label="Đồng hồ kim 3D"></div>
+      <p id="clock-digital" class="clock-digital">--:--:--</p>
+      <p id="clock-date" class="clock-date"></p>
+    </section>
 
-  <!-- <input type="submit" value="Lưu"> -->
-</form>
-</div>
+    <section class="panel entry-panel" aria-labelledby="entry-title">
+      <h2 id="entry-title">Nhập thông tin thu thập</h2>
+      <div class="entry-form">
+        <label>Loại thông tin
+          <input id="f-loai" type="text" maxlength="100" autocomplete="off" />
+        </label>
+        <label>Mô tả
+          <input id="f-mota" type="text" maxlength="300" autocomplete="off" />
+        </label>
+        <label>Nội dung thông tin <span class="optional">(không bắt buộc)</span>
+          <textarea id="f-noidung" rows="3" maxlength="5000"></textarea>
+        </label>
+        <div class="form-actions">
+          <button id="btn-add" class="btn-primary" type="button">Thêm thông tin</button>
+          <span id="entry-status" class="status" role="status" aria-live="polite"></span>
+        </div>
+      </div>
+    </section>
 
-<h1>Thứ 3</h1>
-<p>Nội dung</p>
-<h2>Lưu ý:</h2>
-<p>Nội dung.</p> <button class="buton">Lưu</button>
-<hr>
+    <section class="panel portal-panel" aria-labelledby="portal-title">
+      <div class="panel-head">
+        <h2 id="portal-title">Cổng Thông tin dùng chung</h2>
+        <button id="btn-refresh" class="btn-ghost" type="button">Tải lại</button>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr><th>STT</th><th>Mô tả</th><th>Loại thông tin</th><th>Nội dung thông tin</th><th>Thời gian thêm</th></tr>
+          </thead>
+          <tbody id="portal-body"></tbody>
+        </table>
+      </div>
+      <p id="portal-empty" class="empty" hidden>Chưa có thông tin nào. Nhập thông tin ở bảng bên trên để bắt đầu.</p>
+    </section>
 
+    <section class="panel notes-panel" aria-labelledby="notes-title">
+      <h2 id="notes-title">Ghi chú trong tuần</h2>
+      <div id="notes-list" class="notes-list"></div>
+    </section>
+
+    <section class="panel frames-panel" aria-labelledby="frames-title">
+      <h2 id="frames-title">Khung tranh ảnh</h2>
+      <div id="frames-list" class="frames-list"></div>
+    </section>
+
+  </main>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+  <script src="https://unpkg.com/three@0.137.5/build/three.min.js"></script>
+  <script src="/app.js"></script>
 </body>
 </html>
-
