@@ -1,0 +1,27 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "workspace",
+  "main": "src/worker.js",
+  "compatibility_date": "2025-09-01",
+  "observability": {
+    "enabled": true
+  },
+  "assets": {
+    "directory": "./public",
+    "binding": "ASSETS",
+    "run_worker_first": ["/api/*"]
+  },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "duyvu_space",
+      "database_id": "525e04b3-5afa-4793-a63b-e96f8c0b8956"
+    }
+  ],
+  "kv_namespaces": [
+    {
+      "binding": "NOTES",
+      "id": "26eba944cf9d44cba41078c1ed498efb"
+    }
+  ]
+}
