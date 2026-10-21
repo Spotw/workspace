@@ -10,7 +10,7 @@ const json = (data, status = 200) =>
   });
 
 async function ensureTable(env) {
-  //if (tableReady) return;
+  if (tableReady) return;
   //await env.DB.prepare(
     //`CREATE TABLE IF NOT EXISTS workspace_entries (
     //  id INTEGER PRIMARY KEY AUTOINCREMENT,
