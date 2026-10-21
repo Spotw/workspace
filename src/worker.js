@@ -10,16 +10,16 @@ const json = (data, status = 200) =>
   });
 
 async function ensureTable(env) {
-  if (tableReady) return;
-  await env.DB.prepare(
-    `CREATE TABLE IF NOT EXISTS workspace_entries (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      loai TEXT NOT NULL,
-      mo_ta TEXT NOT NULL,
-      noi_dung TEXT NOT NULL DEFAULT '',
-      created_at TEXT NOT NULL DEFAULT (datetime('now'))
-    )`
-  ).run();
+  //if (tableReady) return;
+  //await env.DB.prepare(
+    //`CREATE TABLE IF NOT EXISTS workspace_entries (
+    //  id INTEGER PRIMARY KEY AUTOINCREMENT,
+    //  loai TEXT NOT NULL,
+    //  mo_ta TEXT NOT NULL,
+    //  noi_dung TEXT NOT NULL DEFAULT '',
+    //  created_at TEXT NOT NULL DEFAULT (datetime('now'))
+   // )`
+  //).run();
   tableReady = true;
 }
 
