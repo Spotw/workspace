@@ -36,7 +36,7 @@ async function handleEntries(request, env) {
 
   if (request.method === "GET") {
     const { results } = await env.DB.prepare(
-      "SELECT id, loai, mo_ta, noi_dung, created_at FROM workspace_entries ORDER BY id DESC LIMIT 100"
+      "SELECT id, loai, mo_ta, noi_dung, created_at FROM entries ORDER BY id DESC LIMIT 100"
     ).all();
     return json(results);
   }
@@ -52,7 +52,7 @@ async function handleEntries(request, env) {
       return json({ error: "Nội dung quá dài." }, 400);
 
     const row = await env.DB.prepare(
-      "INSERT INTO workspace_entries (loai, mo_ta, noi_dung) VALUES (?, ?, ?) RETURNING id, loai, mo_ta, noi_dung, created_at"
+      "INSERT INTO entries (loai, mo_ta, noi_dung) VALUES (?, ?, ?) RETURNING id, loai, mo_ta, noi_dung, created_at"
     )
       .bind(loai, moTa, noiDung)
       .first();
