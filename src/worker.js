@@ -36,14 +36,14 @@ async function handleEntries(request, env) {
 
   if (request.method === "GET") {
     const { results } = await env.DB.prepare(
-      "SELECT id, loai, mo_ta, noi_dung, created_at FROM entries ORDER BY id DESC LIMIT 100"
+      "SELECT id, loai_thong_tin, mo_ta, noi_dung, created_at FROM entries ORDER BY id DESC LIMIT 100"
     ).all();
     return json(results);
   }
 
   if (request.method === "POST") {
     const body = await readBody(request);
-    const loai = String(body?.loai ?? "").trim();
+    const loai = String(body?.loai_thong_tin ?? "").trim();
     const moTa = String(body?.mo_ta ?? "").trim();
     const noiDung = String(body?.noi_dung ?? "").trim();
 
@@ -52,7 +52,7 @@ async function handleEntries(request, env) {
       return json({ error: "Nội dung quá dài." }, 400);
 
     const row = await env.DB.prepare(
-      "INSERT INTO entries (loai, mo_ta, noi_dung) VALUES (?, ?, ?) RETURNING id, loai, mo_ta, noi_dung, created_at"
+      "INSERT INTO entries (loai_thong_tin, mo_ta, noi_dung) VALUES (?, ?, ?) RETURNING id, loai_thong_tin, mo_ta, noi_dung, created_at"
     )
       .bind(loai, moTa, noiDung)
       .first();
