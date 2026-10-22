@@ -82,7 +82,7 @@
           el("tr", {}, [
             el("td", { class: "num", text: String(i + 1) }),
             el("td", { text: e.mo_ta }),
-            el("td", { text: e.loai }),
+            el("td", { text: e.loai_thong_tin }),
             el("td", { class: "content", text: e.noi_dung || "" }),
             el("td", { class: "time", text: formatTime(e.created_at) }),
           ])
@@ -105,11 +105,11 @@
 
     async function add() {
       const payload = {
-        loai: fLoai.value.trim(),
+        loai_thong_tin: fLoai.value.trim(),
         mo_ta: fMoTa.value.trim(),
         noi_dung: fNoiDung.value.trim(),
       };
-      if (!payload.loai || !payload.mo_ta) {
+      if (!payload.loai_thong_tin || !payload.mo_ta) {
         setStatus("Cần nhập Loại thông tin và Mô tả.", true);
         return;
       }
