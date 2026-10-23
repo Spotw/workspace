@@ -3,17 +3,11 @@ import { createRoot } from "react-dom/client";
 import { flushSync } from "react-dom";
 import { motion } from "framer-motion";
 import {
-  ArrowDownToLine,
   ArrowRight,
-  ArrowUpRight,
   CalendarDays,
-  Check,
-  ChevronDown,
   Clock3,
-  Image,
   Layers3,
   LoaderCircle,
-  Maximize2,
   Orbit,
   RefreshCw,
   Search,
@@ -239,8 +233,6 @@ function PortalPanel() {
 
 function NotesPanel() {
   const [notes, setNotes] = useState({});
-  const [saving, setSaving] = useState({});
-  const [saved, setSaved] = useState({});
   const [loadError, setLoadError] = useState("");
   const today = getTodayKey();
 
@@ -255,23 +247,6 @@ function NotesPanel() {
     return () => { active = false; };
   }, []);
 
-  function updateNote(key, text) {
-    setNotes((current) => ({ ...current, [key]: text }));
-    setSaved((current) => ({ ...current, [key]: false }));
-  }
-
-  async function saveNote(key) {
-    setSaving((current) => ({ ...current, [key]: true }));
-    try {
-      await api(`/api/notes/${key}`, { method: "PUT", body: JSON.stringify({ text: notes[key] || "" }) });
-      setSaved((current) => ({ ...current, [key]: true }));
-    } catch (err) {
-      setLoadError(err.message);
-    } finally {
-      setSaving((current) => ({ ...current, [key]: false }));
-    }
-  }
-
   return (
     <MotionPanel id="p-notes" className="notes-panel">
       <PanelTitle eyebrow="GÓC CÁ NHÂN" title="Ghi chú trong tuần" icon={CalendarDays} />
@@ -283,100 +258,13 @@ function NotesPanel() {
         {DAYS.map(([key, label, shortLabel]) => (
           <div className={`note-row ${key === today ? "today" : ""}`} key={key}>
             <div className="day-label"><span className="day-short">{shortLabel}</span><span className="day-full">{label}</span></div>
-            <input
-              value={notes[key] || ""}
-              onChange={(event) => updateNote(key, event.target.value)}
-              onKeyDown={(event) => { if (event.key === "Enter") saveNote(key); }}
-              maxLength={5000}
-              placeholder={key === today ? "Thêm điều bạn muốn nhớ…" : "Ghi lại một ý tưởng…"}
-              aria-label={`Ghi chú ${label}`}
-            />
-            <button className={`save-note ${saved[key] ? "saved" : ""}`} type="button" onClick={() => saveNote(key)} disabled={Boolean(saving[key])} aria-label={saved[key] ? `Đã lưu ghi chú ${label}` : `Lưu ghi chú ${label}`}>
-              {saving[key] ? <LoaderCircle size={15} className="spin" /> : saved[key] ? <Check size={15} /> : <ArrowUpRight size={15} />}
-            </button>
+            <span className="note-text">{notes[key] || "Chưa có ghi chú"}</span>
           </div>
         ))}
       </div>
       <div className={`notes-status ${loadError ? "status-error" : ""}`}>
-        {loadError ? <><span>{loadError}</span><button type="button" onClick={() => setLoadError("")} aria-label="Ẩn lỗi"><X size={14} /></button></> : <><Sparkles size={14} /> {Object.values(saved).some(Boolean) ? "Ghi chú đã được lưu." : "Nhấn Enter hoặc mũi tên để lưu ghi chú."}</>}
+        {loadError ? <><span>{loadError}</span><button type="button" onClick={() => setLoadError("")} aria-label="Ẩn lỗi"><X size={14} /></button></> : <><Sparkles size={14} /> Ghi chú được đọc từ kho KV · CHỈ XEM</>}
       </div>
-    </MotionPanel>
-  );
-}
-
-function FrameCard({ frame, index }) {
-  const [url, setUrl] = useState(frame.url || "");
-  const [caption, setCaption] = useState(frame.caption || "");
-  const [message, setMessage] = useState("");
-  const [error, setError] = useState(false);
-  const [saving, setSaving] = useState(false);
-  const [failedImage, setFailedImage] = useState(false);
-
-  async function saveFrame() {
-    setSaving(true);
-    setMessage("");
-    setError(false);
-    try {
-      const saved = await api(`/api/frames/${index}`, {
-        method: "PUT",
-        body: JSON.stringify({ url, caption }),
-      });
-      setUrl(saved.url || "");
-      setCaption(saved.caption || "");
-      setFailedImage(false);
-      setMessage("Đã lưu thay đổi.");
-    } catch (err) {
-      setError(true);
-      setMessage(err.message);
-    } finally {
-      setSaving(false);
-    }
-  }
-
-  return (
-    <motion.article className="frame-card" whileHover={reduceMotion ? undefined : { y: -4 }} transition={{ duration: 0.2 }}>
-      <div className="frame-image-wrap">
-        {url && !failedImage ? (
-          <img src={url} alt={caption || `Khung ảnh ${index + 1}`} loading="lazy" referrerPolicy="no-referrer" onError={() => setFailedImage(true)} />
-        ) : (
-          <div className="frame-empty"><Image size={27} strokeWidth={1.4} /><span>{failedImage ? "Không tải được ảnh" : "Khung ảnh đang chờ"}</span><small>{failedImage ? "Kiểm tra lại địa chỉ ảnh" : "Thêm khoảnh khắc của bạn"}</small></div>
-        )}
-        <span className="frame-number">0{index + 1}</span>
-        {url && <a className="frame-open" href={url} target="_blank" rel="noreferrer" aria-label="Mở ảnh trong tab mới"><Maximize2 size={15} /></a>}
-      </div>
-      {caption && <p className="frame-caption">{caption}</p>}
-      <details className="frame-edit">
-        <summary><span>Chỉnh sửa khung ảnh</span><ChevronDown size={15} /></summary>
-        <div className="frame-form">
-          <label>Đường dẫn ảnh<input type="url" placeholder="https://…" value={url} onChange={(event) => setUrl(event.target.value)} /></label>
-          <label>Chú thích<input type="text" placeholder="Một khoảnh khắc đáng nhớ…" maxLength={120} value={caption} onChange={(event) => setCaption(event.target.value)} /></label>
-          <div className="frame-actions"><button className="button-primary" type="button" onClick={saveFrame} disabled={saving}>{saving ? <LoaderCircle size={15} className="spin" /> : <ArrowDownToLine size={15} />} Lưu ảnh</button><span className={error ? "status-error" : "save-message"}>{message}</span></div>
-        </div>
-      </details>
-    </motion.article>
-  );
-}
-
-function FramesPanel() {
-  const [frames, setFrames] = useState([]);
-  const [error, setError] = useState("");
-
-  useEffect(() => {
-    api("/api/frames")
-      .then((data) => {
-        if (!Array.isArray(data)) throw new Error("Bộ sưu tập ảnh không hợp lệ.");
-        setFrames(data);
-      })
-      .catch((err) => setError(err.message));
-  }, []);
-
-  return (
-    <MotionPanel id="p-frames" className="frames-panel">
-      <PanelTitle eyebrow="BỘ SƯU TẬP" title="Khung tranh ảnh" icon={Image} />
-      <div className="frames-intro"><span>Lưu giữ những khung hình bạn yêu thích.</span><span className="frames-count">03 KHUNG ẢNH</span></div>
-      {error ? <div className="state-message state-error">{error}</div> : frames.length === 0 ? <div className="state-message"><LoaderCircle className="spin" size={18} /> Đang mở bộ sưu tập…</div> : (
-        <div className="frames-list">{frames.map((frame, index) => <FrameCard frame={frame} index={index} key={index} />)}</div>
-      )}
     </MotionPanel>
   );
 }
@@ -392,7 +280,6 @@ function App() {
         <ClockPanel />
         <PortalPanel />
         <NotesPanel />
-        <FramesPanel />
       </div>
     </main>
   );
