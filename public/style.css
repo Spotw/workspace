@@ -173,8 +173,8 @@ button:focus-visible, input:focus-visible, summary:focus-visible, a:focus-visibl
 .footer-spark { margin-right: 6px; color: var(--violet); font-size: 13px; }
 .hero-scroll { gap: 6px; color: #aeb5cb; }
 
-.portal-panel { grid-column: span 5; min-height: 560px; }
-.notes-panel { grid-column: 1 / -1; min-height: 410px; }
+.portal-panel { grid-column: 1 / -1; min-height: 560px; }
+.notes-panel { grid-column: span 5; min-height: 410px; }
 .portal-panel, .notes-panel { padding: 25px 28px 19px; }
 .panel-heading { gap: 16px; min-height: 43px; margin-bottom: 17px; }
 .heading-copy { min-width: 0; }

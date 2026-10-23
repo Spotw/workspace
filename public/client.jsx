@@ -233,37 +233,56 @@ function PortalPanel() {
 
 function NotesPanel() {
   const [notes, setNotes] = useState({});
+  const [status, setStatus] = useState("loading");
   const [loadError, setLoadError] = useState("");
   const today = getTodayKey();
 
-  useEffect(() => {
-    let active = true;
-    api("/api/notes")
-      .then((data) => {
-        if (!data || typeof data !== "object" || Array.isArray(data)) throw new Error("Danh sách ghi chú không hợp lệ.");
-        if (active) setNotes(data);
-      })
-      .catch((err) => { if (active) setLoadError(err.message); });
-    return () => { active = false; };
-  }, []);
+  async function loadNotes() {
+    setStatus("loading");
+    setLoadError("");
+    try {
+      const data = await api("/api/notes");
+      if (!data || typeof data !== "object" || Array.isArray(data)) throw new Error("Danh sách ghi chú không hợp lệ.");
+      setNotes(data);
+      setStatus("ready");
+    } catch (err) {
+      setLoadError(err.message);
+      setStatus("error");
+    }
+  }
+
+  useEffect(() => { loadNotes(); }, []);
 
   return (
     <MotionPanel id="p-notes" className="notes-panel">
-      <PanelTitle eyebrow="GÓC CÁ NHÂN" title="Ghi chú trong tuần" icon={CalendarDays} />
+      <PanelTitle
+        eyebrow="GÓC CÁ NHÂN"
+        title="Ghi chú trong tuần"
+        icon={CalendarDays}
+        action={
+          <button className="icon-button" type="button" onClick={loadNotes} disabled={status === "loading"} aria-label="Tải lại ghi chú">
+            <RefreshCw size={16} className={status === "loading" ? "spin" : ""} />
+          </button>
+        }
+      />
       <div className="week-overview">
         <div><span className="week-title">Tuần của bạn</span><span className="week-subtitle">Một chút mỗi ngày, thật nhiều cảm hứng.</span></div>
         <span className="week-badge"><Sun size={14} /> {DAYS.find((day) => day[0] === today)?.[1] || "Hôm nay"}</span>
       </div>
       <div className="notes-list">
-        {DAYS.map(([key, label, shortLabel]) => (
+        {status === "loading" ? (
+          <div className="state-message"><LoaderCircle className="spin" size={18} /> Đang đọc ghi chú từ KV…</div>
+        ) : status === "error" ? (
+          <div className="state-message state-error"><span>{loadError}</span><button className="text-button" type="button" onClick={loadNotes}>Thử lại</button></div>
+        ) : DAYS.map(([key, label, shortLabel]) => (
           <div className={`note-row ${key === today ? "today" : ""}`} key={key}>
             <div className="day-label"><span className="day-short">{shortLabel}</span><span className="day-full">{label}</span></div>
             <span className="note-text">{notes[key] || "Chưa có ghi chú"}</span>
           </div>
         ))}
       </div>
-      <div className={`notes-status ${loadError ? "status-error" : ""}`}>
-        {loadError ? <><span>{loadError}</span><button type="button" onClick={() => setLoadError("")} aria-label="Ẩn lỗi"><X size={14} /></button></> : <><Sparkles size={14} /> Ghi chú được đọc từ kho KV · CHỈ XEM</>}
+      <div className="notes-status">
+        {status === "ready" ? <><Sparkles size={14} /> Ghi chú được đọc từ KV · CHỈ XEM</> : status === "loading" ? "ĐANG KẾT NỐI KV…" : "Không đọc được ghi chú từ KV."}
       </div>
     </MotionPanel>
   );
@@ -278,8 +297,8 @@ function App() {
       </header>
       <div className="dashboard-grid">
         <ClockPanel />
-        <PortalPanel />
         <NotesPanel />
+        <PortalPanel />
       </div>
     </main>
   );

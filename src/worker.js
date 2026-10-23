@@ -46,7 +46,7 @@ async function handleEntries(request, env) {
 
 async function handleNotes(request, env, parts) {
   if (request.method === "GET" && parts.length === 0) {
-    const values = await Promise.all(DAYS.map((d) => env.NOTES.get(`note:${d}`)));
+    const values = await Promise.all(DAYS.map((_, index) => env.NOTES.get(`day:${index}`)));
     return json(Object.fromEntries(DAYS.map((d, i) => [d, values[i] ?? ""])));
   }
 
@@ -54,7 +54,7 @@ async function handleNotes(request, env, parts) {
     const body = await readBody(request);
     const text = String(body?.text ?? "");
     if (text.length > 5000) return json({ error: "Ghi chú quá dài." }, 400);
-    await env.NOTES.put(`note:${parts[0]}`, text);
+    await env.NOTES.put(`day:${DAYS.indexOf(parts[0])}`, text);
     return json({ ok: true });
   }
 
