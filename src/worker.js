@@ -41,24 +41,6 @@ async function handleEntries(request, env) {
     return json(results);
   }
 
-  if (request.method === "POST") {
-    const body = await readBody(request);
-    const loai = String(body?.loai_thong_tin ?? "").trim();
-    const moTa = String(body?.mo_ta ?? "").trim();
-    const noiDung = String(body?.noi_dung ?? "").trim();
-
-    if (!loai || !moTa) return json({ error: "Cần nhập Loại thông tin và Mô tả." }, 400);
-    if (loai.length > 100 || moTa.length > 300 || noiDung.length > 5000)
-      return json({ error: "Nội dung quá dài." }, 400);
-
-    const row = await env.DB.prepare(
-      "INSERT INTO entries (loai_thong_tin, mo_ta, noi_dung) VALUES (?, ?, ?) RETURNING id, loai_thong_tin, mo_ta, noi_dung, created_at"
-    )
-      .bind(loai, moTa, noiDung)
-      .first();
-    return json(row, 201);
-  }
-
   return json({ error: "Method not allowed" }, 405);
 }
 
