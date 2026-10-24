@@ -18,4 +18,4 @@ npx wrangler deploy
 
 Vite builds the static site into `dist/`, which is served by the Cloudflare Worker configured in `wrangler.jsonc`. The Worker continues to serve the `/api/*` endpoints.
 
-Weekly notes are read-only in the dashboard. The `NOTES` KV binding points to the `db_simple` namespace; `/api/notes` reads `day:0` through `day:6` in Monday-to-Sunday order.
+Weekly tasks are read-only in the dashboard. `/api/tasks?week=YYYY-MM-DD` reads the Monday-to-Sunday task records from the `web_data` D1 table, using the `tasks:YYYY-MM-DD` keys written by the `myweb` calendar app.

@@ -1,5 +1,7 @@
 const DAYS = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"];
 const FRAME_COUNT = 3;
+const MAX_TASKS_PER_DAY = 20;
+const MAX_TASK_TITLE_LENGTH = 100;
 
 let tableReady = false;
 
@@ -61,6 +63,72 @@ async function handleNotes(request, env, parts) {
   return json({ error: "Not found" }, 404);
 }
 
+function getWeekDates(week) {
+  if (typeof week !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(week) || Number(week.slice(0, 4)) < 1) {
+    return null;
+  }
+
+  const monday = new Date(`${week}T00:00:00.000Z`);
+  if (
+    Number.isNaN(monday.getTime()) ||
+    monday.toISOString().slice(0, 10) !== week ||
+    monday.getUTCDay() !== 1
+  ) {
+    return null;
+  }
+
+  return Array.from({ length: 7 }, (_, index) => {
+    const date = new Date(monday);
+    date.setUTCDate(monday.getUTCDate() + index);
+    return date.toISOString().slice(0, 10);
+  });
+}
+
+function isValidTaskList(tasks) {
+  if (!Array.isArray(tasks) || tasks.length > MAX_TASKS_PER_DAY) return false;
+
+  const ids = new Set();
+  return tasks.every((task) => {
+    if (
+      !task ||
+      typeof task.id !== "string" ||
+      task.id.length === 0 ||
+      task.id.length > 80 ||
+      typeof task.title !== "string" ||
+      task.title.trim().length === 0 ||
+      task.title.length > MAX_TASK_TITLE_LENGTH ||
+      typeof task.done !== "boolean" ||
+      ids.has(task.id)
+    ) {
+      return false;
+    }
+    ids.add(task.id);
+    return true;
+  });
+}
+
+async function handleTasks(request, env) {
+  if (request.method !== "GET") return json({ error: "Method not allowed" }, 405);
+
+  const weekDates = getWeekDates(new URL(request.url).searchParams.get("week"));
+  if (!weekDates) return json({ error: "Tuần không hợp lệ" }, 400);
+
+  const { results } = await env.DB.prepare(
+    "SELECT key, value FROM web_data WHERE key >= ? AND key <= ?"
+  ).bind(`tasks:${weekDates[0]}`, `tasks:${weekDates[6]}`).all();
+  const tasksByDate = Object.fromEntries(weekDates.map((date) => [date, []]));
+
+  for (const { key, value } of results) {
+    const date = key.slice("tasks:".length);
+    if (!weekDates.includes(date)) continue;
+    const tasks = JSON.parse(value);
+    if (!isValidTaskList(tasks)) throw new Error(`Dữ liệu công việc không hợp lệ: ${date}`);
+    tasksByDate[date] = tasks;
+  }
+
+  return json({ tasks: tasksByDate });
+}
+
 async function handleFrames(request, env, parts) {
   const empty = () => Array.from({ length: FRAME_COUNT }, () => ({ url: "", caption: "" }));
 
@@ -97,6 +165,7 @@ export default {
       try {
         if (resource === "entries") return await handleEntries(request, env);
         if (resource === "notes") return await handleNotes(request, env, parts);
+        if (resource === "tasks" && parts.length === 0) return await handleTasks(request, env);
         if (resource === "frames") return await handleFrames(request, env, parts);
         return json({ error: "Not found" }, 404);
       } catch (err) {

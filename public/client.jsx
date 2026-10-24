@@ -5,6 +5,7 @@ import { motion } from "framer-motion";
 import {
   ArrowRight,
   CalendarDays,
+  Check,
   Clock3,
   Layers3,
   LoaderCircle,
@@ -44,6 +45,25 @@ async function api(path, options = {}) {
 
 function getTodayKey() {
   return new Date().toLocaleDateString("en-US", { timeZone: TZ, weekday: "short" }).toLowerCase().slice(0, 3);
+}
+
+function getWeekDates() {
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone: TZ,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(new Date());
+  const values = Object.fromEntries(parts.map(({ type, value }) => [type, value]));
+  const today = new Date(`${values.year}-${values.month}-${values.day}T00:00:00Z`);
+  const monday = new Date(today);
+  monday.setUTCDate(today.getUTCDate() - ((today.getUTCDay() + 6) % 7));
+
+  return Array.from({ length: 7 }, (_, index) => {
+    const date = new Date(monday);
+    date.setUTCDate(monday.getUTCDate() + index);
+    return date.toISOString().slice(0, 10);
+  });
 }
 
 function formatDate(date = new Date()) {
@@ -231,19 +251,22 @@ function PortalPanel() {
   );
 }
 
-function NotesPanel() {
-  const [notes, setNotes] = useState({});
+function TasksPanel() {
+  const [tasksByDate, setTasksByDate] = useState({});
   const [status, setStatus] = useState("loading");
   const [loadError, setLoadError] = useState("");
   const today = getTodayKey();
+  const weekDates = getWeekDates();
 
-  async function loadNotes() {
+  async function loadTasks() {
     setStatus("loading");
     setLoadError("");
     try {
-      const data = await api("/api/notes");
-      if (!data || typeof data !== "object" || Array.isArray(data)) throw new Error("Danh sách ghi chú không hợp lệ.");
-      setNotes(data);
+      const data = await api(`/api/tasks?week=${weekDates[0]}`);
+      if (!data?.tasks || typeof data.tasks !== "object" || Array.isArray(data.tasks)) {
+        throw new Error("Danh sách công việc không hợp lệ.");
+      }
+      setTasksByDate(data.tasks);
       setStatus("ready");
     } catch (err) {
       setLoadError(err.message);
@@ -251,38 +274,50 @@ function NotesPanel() {
     }
   }
 
-  useEffect(() => { loadNotes(); }, []);
+  useEffect(() => { loadTasks(); }, []);
+  const weekTasks = Object.values(tasksByDate).flat();
+  const completedCount = weekTasks.filter((task) => task.done).length;
 
   return (
-    <MotionPanel id="p-notes" className="notes-panel">
+    <MotionPanel id="p-tasks" className="tasks-panel">
       <PanelTitle
         eyebrow="GÓC CÁ NHÂN"
-        title="Ghi chú trong tuần"
+        title="Công việc trong tuần"
         icon={CalendarDays}
         action={
-          <button className="icon-button" type="button" onClick={loadNotes} disabled={status === "loading"} aria-label="Tải lại ghi chú">
+          <button className="icon-button" type="button" onClick={loadTasks} disabled={status === "loading"} aria-label="Tải lại công việc">
             <RefreshCw size={16} className={status === "loading" ? "spin" : ""} />
           </button>
         }
       />
       <div className="week-overview">
-        <div><span className="week-title">Tuần của bạn</span><span className="week-subtitle">Một chút mỗi ngày, thật nhiều cảm hứng.</span></div>
+        <div><span className="week-title">Tuần của bạn</span><span className="week-subtitle">Theo dõi tiến độ công việc từng ngày.</span></div>
         <span className="week-badge"><Sun size={14} /> {DAYS.find((day) => day[0] === today)?.[1] || "Hôm nay"}</span>
       </div>
-      <div className="notes-list">
+      <div className="tasks-list">
         {status === "loading" ? (
-          <div className="state-message"><LoaderCircle className="spin" size={18} /> Đang đọc ghi chú từ KV…</div>
+          <div className="state-message"><LoaderCircle className="spin" size={18} /> Đang đọc công việc từ D1…</div>
         ) : status === "error" ? (
-          <div className="state-message state-error"><span>{loadError}</span><button className="text-button" type="button" onClick={loadNotes}>Thử lại</button></div>
-        ) : DAYS.map(([key, label, shortLabel]) => (
-          <div className={`note-row ${key === today ? "today" : ""}`} key={key}>
-            <div className="day-label"><span className="day-short">{shortLabel}</span><span className="day-full">{label}</span></div>
-            <span className="note-text">{notes[key] || "Chưa có ghi chú"}</span>
-          </div>
-        ))}
+          <div className="state-message state-error"><span>{loadError}</span><button className="text-button" type="button" onClick={loadTasks}>Thử lại</button></div>
+        ) : DAYS.map(([key, label, shortLabel], index) => {
+          const dayTasks = tasksByDate[weekDates[index]] || [];
+          return (
+            <div className={`task-day-row ${key === today ? "today" : ""}`} key={key}>
+              <div className="day-label"><span className="day-short">{shortLabel}</span><span className="day-full">{label}</span></div>
+              <div className="task-items">
+                {dayTasks.length > 0 ? dayTasks.map((task) => (
+                  <div className={`weekly-task ${task.done ? "is-done" : ""}`} key={task.id}>
+                    <span className="task-check">{task.done && <Check size={11} />}</span>
+                    <span className="weekly-task-title">{task.title}</span>
+                  </div>
+                )) : <span className="empty-day">Chưa có công việc</span>}
+              </div>
+            </div>
+          );
+        })}
       </div>
-      <div className="notes-status">
-        {status === "ready" ? <><Sparkles size={14} /> Ghi chú được đọc từ KV · CHỈ XEM</> : status === "loading" ? "ĐANG KẾT NỐI KV…" : "Không đọc được ghi chú từ KV."}
+      <div className="tasks-status">
+        {status === "ready" ? <><Sparkles size={14} /> {completedCount}/{weekTasks.length} CÔNG VIỆC HOÀN THÀNH · D1</> : status === "loading" ? "ĐANG KẾT NỐI D1…" : "Không đọc được công việc từ D1."}
       </div>
     </MotionPanel>
   );
@@ -297,7 +332,7 @@ function App() {
       </header>
       <div className="dashboard-grid">
         <ClockPanel />
-        <NotesPanel />
+        <TasksPanel />
         <PortalPanel />
       </div>
     </main>
