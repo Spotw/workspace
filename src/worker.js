@@ -114,7 +114,7 @@ async function handleTasks(request, env) {
   if (!weekDates) return json({ error: "Tuần không hợp lệ" }, 400);
 
   const { results } = await env.DB.prepare(
-    "SELECT key, value FROM web_data WHERE key >= ? AND key <= ?"
+    "SELECT key, value FROM schedule_79fca2b43a5edc834a8f3b15770a19042455751b5a789575e13b65001b237197 WHERE key >= ? AND key <= ?"
   ).bind(`tasks:${weekDates[0]}`, `tasks:${weekDates[6]}`).all();
   const tasksByDate = Object.fromEntries(weekDates.map((date) => [date, []]));
 
