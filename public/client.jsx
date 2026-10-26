@@ -7,9 +7,9 @@ import {
   CalendarDays,
   Check,
   Clock3,
+  Coffee,
   Layers3,
   LoaderCircle,
-  Orbit,
   RefreshCw,
   Search,
   Sparkles,
@@ -142,10 +142,10 @@ function ClockPanel() {
       <div className="hero-orb hero-orb-two" />
       <div className="hero-topline">
         <div className="brand-lockup">
-          <span className="brand-mark"><Orbit size={21} /></span>
-          <span>SPACE<span className="brand-light">/</span>WORK</span>
+          <span className="brand-mark"><Coffee size={21} /></span>
+          <span>BREW<span className="brand-light">/</span>WORK</span>
         </div>
-        <span className="live-pill"><span className="live-dot" /> KHÔNG GIAN CỦA BẠN</span>
+        <span className="live-pill"><span className="live-dot" /> GÓC CÀ PHÊ CỦA BẠN</span>
       </div>
       <div className="hero-content">
         <motion.span
@@ -156,14 +156,14 @@ function ClockPanel() {
         >
           <Sparkles size={15} /> {greeting}
         </motion.span>
-        <h1>Một ngày mới,<br /><span>một không gian mới.</span></h1>
-        <p className="hero-description">Giữ mọi ý tưởng và khoảnh khắc của bạn trong tầm mắt.</p>
+        <h1>Một ngụm cà phê,<br /><span>một ngày đầy cảm hứng.</span></h1>
+        <p className="hero-description">Chậm lại một nhịp, sắp xếp ý tưởng và làm điều quan trọng.</p>
         <div className="clock-display" aria-label={`Giờ hiện tại ${time}`}>{time}</div>
         <div className="hero-date"><CalendarDays size={16} /> {date}</div>
       </div>
       <div className="hero-footer">
-        <span><span className="footer-spark">✳</span> TẬP TRUNG VÀO ĐIỀU QUAN TRỌNG</span>
-        <span className="hero-scroll">KHÁM PHÁ KHÔNG GIAN <ArrowRight size={14} /></span>
+        <span><span className="footer-spark">✳</span> PHA MỘT CHÚT TẬP TRUNG</span>
+        <span className="hero-scroll">GÓC NHỎ CỦA BẠN <ArrowRight size={14} /></span>
       </div>
     </MotionPanel>
   );
@@ -327,8 +327,8 @@ function App() {
   return (
     <main id="stage" className="stage">
       <header className="workspace-header">
-        <span className="header-caption">TỔNG QUAN</span>
-        <span className="header-status"><span className="live-dot" /> KHÔNG GIAN RIÊNG TƯ</span>
+        <span className="header-caption">GÓC LÀM VIỆC</span>
+        <span className="header-status"><span className="live-dot" /> MỘT CHÚT BÌNH YÊN</span>
       </header>
       <div className="dashboard-grid">
         <ClockPanel />
