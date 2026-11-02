@@ -611,9 +611,9 @@ function PortalPanel() {
                         onClick={() => deleteEntry(entry)}
                         disabled={deletingEntryId !== null}
                         aria-label={`Xóa thông tin ${entry.mo_ta}`}
-                        title="Xóa thông tin"
                       >
                         {deletingEntryId === entry.id ? <LoaderCircle className="spin" size={14} /> : <Trash2 size={14} />}
+                        <span>{deletingEntryId === entry.id ? "Đang xóa" : "Xóa"}</span>
                       </button>
                     )}
                   </td>
