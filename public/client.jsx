@@ -424,7 +424,7 @@ function WatchlistPanel() {
               <div className="watchlist-movie-heading">
                 <h3><a href={movie.sourceUrl} target="_blank" rel="noreferrer">{movie.title}</a></h3>
                 <div className="watchlist-movie-actions">
-                  <a className="watchlist-action-button" href={movie.sourceUrl} target="_blank" rel="noreferrer" aria-label={`Mở trang phim ${movie.title}`} title="Mở trang phim"><ExternalLink size={14} /></a>
+                  <a className="watchlist-action-button" href={movie.latestEpisodeUrl || movie.sourceUrl} target="_blank" rel="noreferrer" aria-label={`Mở tập mới nhất ${movie.title} (${movie.latestEpisodeAudio || "Vietsub"})`} title={movie.latestEpisodeUrl ? `Mở tập mới nhất - ${movie.latestEpisodeAudio || "Vietsub"}` : "Mở trang phim"}><ExternalLink size={14} /></a>
                   <button className="watchlist-action-button watchlist-delete-button" type="button" onClick={() => deleteMovie(movie)} aria-label={`Xóa ${movie.title}`} title="Xóa phim"><Trash2 size={14} /></button>
                 </div>
               </div>
