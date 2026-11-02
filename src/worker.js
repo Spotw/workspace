@@ -45,14 +45,22 @@ async function readBody(request) {
   }
 }
 
-async function handleEntries(request, env) {
+async function handleEntries(request, env, parts) {
   await ensureTable(env);
 
-  if (request.method === "GET") {
+  if (request.method === "GET" && parts.length === 0) {
     const { results } = await env.DB.prepare(
-      "SELECT id, loai_thong_tin, mo_ta, noi_dung, created_at FROM entries ORDER BY id DESC LIMIT 100"
+      "SELECT id, loai_thong_tin, mo_ta, noi_dung, created_at FROM entries WHERE deleted_at IS NULL ORDER BY id DESC LIMIT 100"
     ).all();
     return json(results);
+  }
+
+  if (request.method === "DELETE" && parts.length === 1) {
+    if (!hasSameOrigin(request)) return json({ error: "Yêu cầu không hợp lệ." }, 403);
+    const { meta } = await env.DB.prepare(
+      "UPDATE entries SET deleted_at = datetime('now') WHERE id = ? AND deleted_at IS NULL"
+    ).bind(parts[0]).run();
+    return meta.changes ? json({ ok: true }) : json({ error: "Không tìm thấy thông tin." }, 404);
   }
 
   return json({ error: "Method not allowed" }, 405);
@@ -389,7 +397,7 @@ export default {
     if (url.pathname.startsWith("/api/")) {
       const [resource, ...parts] = url.pathname.slice(5).split("/").filter(Boolean);
       try {
-        if (resource === "entries") return await handleEntries(request, env);
+        if (resource === "entries") return await handleEntries(request, env, parts);
         if (resource === "notes") return await handleNotes(request, env, parts);
         if (resource === "tasks" && parts.length === 0) return await handleTasks(request, env);
         if (resource === "watchlist") return await handleWatchlist(request, env, parts);

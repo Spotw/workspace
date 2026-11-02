@@ -4,6 +4,8 @@ Personal workspace built with React, Vite, Framer Motion, and Lucide.
 
 The dashboard includes a movie watchlist backed by D1. Paste a public movie-page URL from `hhkungfu.ee` to read its title, poster, two latest episode links, and next episode number. Clicking the latest episode opens its dubbed page when available, otherwise its Vietsub page. The Worker checks the source's `robots.txt` before fetching pages and only reads page metadata; it does not fetch or embed video streams. A Cloudflare Cron Trigger refreshes saved titles and showtime schedules daily at 02:00 UTC (09:00 Vietnam time).
 
+Entries shown in the portal can be deleted individually from the dashboard.
+
 ## Development
 
 ```sh

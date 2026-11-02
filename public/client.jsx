@@ -518,10 +518,13 @@ function PortalPanel() {
   const [query, setQuery] = useState("");
   const [status, setStatus] = useState("loading");
   const [error, setError] = useState("");
+  const [actionError, setActionError] = useState("");
+  const [deletingEntryId, setDeletingEntryId] = useState(null);
 
   async function load() {
     setStatus("loading");
     setError("");
+    setActionError("");
     try {
       const data = await api("/api/entries");
       if (!Array.isArray(data)) throw new Error("Danh sách thông tin không hợp lệ.");
@@ -534,6 +537,21 @@ function PortalPanel() {
   }
 
   useEffect(() => { load(); }, []);
+
+  async function deleteEntry(entry) {
+    if (!window.confirm(`Xóa thông tin “${entry.mo_ta}”?`)) return;
+
+    setActionError("");
+    setDeletingEntryId(entry.id);
+    try {
+      await api(`/api/entries/${encodeURIComponent(entry.id)}`, { method: "DELETE" });
+      setEntries((current) => current.filter((item) => item.id !== entry.id));
+    } catch (err) {
+      setActionError(err.message);
+    } finally {
+      setDeletingEntryId(null);
+    }
+  }
 
   const filteredEntries = entries.filter((entry) =>
     [entry.mo_ta, entry.loai_thong_tin, entry.noi_dung]
@@ -563,6 +581,7 @@ function PortalPanel() {
           {query && <button type="button" onClick={() => setQuery("")} aria-label="Xóa tìm kiếm"><X size={14} /></button>}
         </label>
       </div>
+      {actionError && <div className="portal-action-error" role="alert">{actionError}</div>}
       <div className="table-wrap">
         {status === "loading" ? (
           <div className="state-message"><LoaderCircle className="spin" size={20} /> Đang tải thông tin…</div>
@@ -576,7 +595,7 @@ function PortalPanel() {
           </div>
         ) : (
           <table>
-            <thead><tr><th>MÔ TẢ</th><th>LOẠI THÔNG TIN</th><th>NỘI DUNG</th><th>THỜI GIAN</th></tr></thead>
+            <thead><tr><th>MÔ TẢ</th><th>LOẠI THÔNG TIN</th><th>NỘI DUNG</th><th>THỜI GIAN</th><th>THAO TÁC</th></tr></thead>
             <tbody>
               {filteredEntries.map((entry, index) => (
                 <motion.tr key={entry.id || `${entry.created_at}-${index}`} initial={reduceMotion ? false : { opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: index * 0.035 }}>
@@ -584,13 +603,27 @@ function PortalPanel() {
                   <td><span className="type-pill">{entry.loai_thong_tin}</span></td>
                   <td className="entry-content">{entry.noi_dung || <span className="muted">—</span>}</td>
                   <td className="entry-time">{formatEntryTime(entry.created_at)}</td>
+                  <td className="entry-actions">
+                    {entry.id != null && (
+                      <button
+                        className="entry-delete-button"
+                        type="button"
+                        onClick={() => deleteEntry(entry)}
+                        disabled={deletingEntryId !== null}
+                        aria-label={`Xóa thông tin ${entry.mo_ta}`}
+                        title="Xóa thông tin"
+                      >
+                        {deletingEntryId === entry.id ? <LoaderCircle className="spin" size={14} /> : <Trash2 size={14} />}
+                      </button>
+                    )}
+                  </td>
                 </motion.tr>
               ))}
             </tbody>
           </table>
         )}
       </div>
-      <div className="panel-footnote"><span className="live-dot" /> DỮ LIỆU CẬP NHẬT TRỰC TIẾP <span className="footnote-right">CHỈ XEM</span></div>
+      <div className="panel-footnote"><span className="live-dot" /> DỮ LIỆU CẬP NHẬT TRỰC TIẾP <span className="footnote-right">QUẢN LÝ THÔNG TIN</span></div>
     </MotionPanel>
   );
 }

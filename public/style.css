@@ -210,6 +210,11 @@ tbody tr:hover { background: rgba(255, 255, 255, 0.025); }
 .type-pill { display: inline-block; padding: 4px 8px; border: 1px solid rgba(165, 139, 250, 0.18); border-radius: 999px; background: rgba(165, 139, 250, 0.08); color: #c1b1ff; font-size: 9px; white-space: nowrap; }
 .entry-content { min-width: 130px; max-width: 235px; overflow-wrap: anywhere; white-space: pre-wrap; }
 .entry-time { min-width: 128px; color: #818aa5; font-size: 10px; white-space: nowrap; }
+.entry-actions { width: 42px; text-align: center; }
+.entry-delete-button { display: inline-grid; width: 28px; height: 28px; place-items: center; border: 1px solid transparent; border-radius: 8px; background: transparent; color: #806d5d; }
+.entry-delete-button:hover:not(:disabled) { border-color: rgba(169, 104, 67, 0.16); background: rgba(169, 104, 67, 0.08); color: #ad493c; }
+.entry-delete-button:disabled { cursor: wait; opacity: 0.6; }
+.portal-action-error { padding: 3px 0 7px; color: #ad493c; font-size: 10px; }
 .muted { color: #5e6780; }
 .state-message, .empty-state { display: flex; min-height: 130px; align-items: center; justify-content: center; gap: 10px; color: var(--muted); font-size: 12px; }
 .state-error, .status-error { color: var(--danger) !important; }
