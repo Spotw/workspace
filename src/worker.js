@@ -169,9 +169,12 @@ function getWatchlistRecord(row) {
 async function getRobotsRules() {
   const response = await fetch(`${HHKUNGFU_ORIGIN}/robots.txt`, {
     headers: { Accept: "text/plain" },
-    redirect: "error",
+    redirect: "manual",
     signal: AbortSignal.timeout(10000),
   });
+  if (response.status >= 300 && response.status < 400) {
+    throw new Error("HHKungfu chuyển hướng khi đọc robots.txt; đã dừng để bảo vệ nguồn dữ liệu.");
+  }
   if (!response.ok) throw new Error(`Không đọc được robots.txt của HHKungfu (${response.status}).`);
   const content = await response.text();
   if (content.length > 100_000) throw new Error("Tệp robots.txt của HHKungfu quá lớn.");
@@ -186,9 +189,12 @@ async function fetchHhkungfuPage(path, rules) {
 
   const response = await fetch(url, {
     headers: { Accept: "text/html", "User-Agent": "WorkspaceMovieWatchlist/1.0" },
-    redirect: "error",
+    redirect: "manual",
     signal: AbortSignal.timeout(12000),
   });
+  if (response.status >= 300 && response.status < 400) {
+    throw new Error("Trang phim HHKungfu yêu cầu chuyển hướng; không thể đọc an toàn.");
+  }
   if (!response.ok) throw new Error(`HHKungfu trả về lỗi ${response.status} khi đọc trang phim.`);
   const contentLength = Number(response.headers.get("content-length") || 0);
   if (contentLength > MAX_SOURCE_PAGE_LENGTH) throw new Error("Trang nguồn phim vượt quá giới hạn kích thước.");

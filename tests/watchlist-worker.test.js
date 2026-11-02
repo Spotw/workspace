@@ -85,7 +85,8 @@ test("watchlist API adds scraped metadata, rejects unsupported URLs, and deletes
   const database = new MemoryD1();
   const originalFetch = globalThis.fetch;
   let latestEpisodeNumber = 165;
-  globalThis.fetch = async (input) => {
+  globalThis.fetch = async (input, options) => {
+    assert.equal(options.redirect, "manual");
     const url = new URL(input);
     if (url.pathname === "/robots.txt") {
       return new Response("User-agent: *\nDisallow: /wp-admin/");
@@ -147,6 +148,32 @@ test("watchlist API adds scraped metadata, rejects unsupported URLs, and deletes
       headers: { Origin: "https://workspace.test" },
     }), { DB: database });
     assert.equal(deleteResponse.status, 200);
+    assert.equal(database.rows.length, 0);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+test("handles source redirects manually without using unsupported fetch options", async () => {
+  const originalFetch = globalThis.fetch;
+  const database = new MemoryD1();
+  globalThis.fetch = async (_input, options) => {
+    assert.equal(options.redirect, "manual");
+    return new Response(null, {
+      status: 301,
+      headers: { Location: "https://hhkungfu.ee/robots.txt/" },
+    });
+  };
+
+  try {
+    const response = await worker.fetch(new Request("https://workspace.test/api/watchlist", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Origin: "https://workspace.test" },
+      body: JSON.stringify({ url: "https://hhkungfu.ee/tien-nghich" }),
+    }), { DB: database });
+
+    assert.equal(response.status, 502);
+    assert.match((await response.json()).error, /chuyển hướng/i);
     assert.equal(database.rows.length, 0);
   } finally {
     globalThis.fetch = originalFetch;
