@@ -431,7 +431,13 @@ function WatchlistPanel() {
               <div className="watchlist-episodes">
                 <div className="watchlist-episode">
                   <span className="watchlist-episode-status">MỚI NHẤT</span>
-                  <strong>{movie.latestEpisode}</strong>
+                  <strong>
+                    {movie.latestEpisodeUrl
+                      ? <a href={movie.latestEpisodeUrl} target="_blank" rel="noreferrer" title={`Mở ${movie.latestEpisodeAudio || "Vietsub"}`}>
+                          {movie.latestEpisode}
+                        </a>
+                      : movie.latestEpisode}
+                  </strong>
                 </div>
                 <div className="watchlist-episode">
                   <span className="watchlist-episode-status">TRƯỚC ĐÓ</span>

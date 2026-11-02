@@ -79,33 +79,58 @@ export function parseMoviePage(html, sourceUrl) {
     throw new Error("Không tìm thấy tên phim hoặc poster trên trang nguồn.");
   }
 
+  const serverNames = [...html.matchAll(
+    /<span\b[^>]*class=["'][^"']*\bhalim-server-name\b[^"']*["'][^>]*>([\s\S]*?)<\/span>/gi
+  )].map((match) => ({
+    index: match.index,
+    name: textContent(match[1]).toLocaleLowerCase("vi"),
+  }));
   const episodes = new Map();
   const anchorTags = html.match(/<a\b[^>]*>[\s\S]*?<\/a>/gi) || [];
+  let anchorSearchIndex = 0;
   for (const tag of anchorTags) {
+    const anchorIndex = html.indexOf(tag, anchorSearchIndex);
+    anchorSearchIndex = anchorIndex + tag.length;
     const href = readAttribute(tag, "href");
-    let path;
+    let episodeUrl;
     try {
-      path = new URL(href, HHKUNGFU_ORIGIN).pathname;
+      episodeUrl = new URL(href, HHKUNGFU_ORIGIN);
     } catch {
       continue;
     }
 
-    const match = path.match(new RegExp(`^/watch-${slug}/tap-(\\d+)(?:-[^/]+)?\\.html$`, "i"));
+    if (episodeUrl.origin !== HHKUNGFU_ORIGIN) continue;
+    const match = episodeUrl.pathname.match(new RegExp(`^/watch-${slug}/tap-(\\d+)(?:-[^/]+)?\\.html$`, "i"));
     if (!match) continue;
 
     const number = Number(match[1]);
-    episodes.set(number, `Tập ${number}`);
+    const serverName = serverNames
+      .filter((server) => server.index < anchorIndex)
+      .at(-1)?.name || "";
+    const episodeVersions = episodes.get(number) || [];
+    episodeVersions.push({
+      url: episodeUrl.href,
+      isDubbed: /thuyết minh|thuyet minh/.test(serverName),
+      isVietsub: /vietsub|viet sub/.test(serverName),
+    });
+    episodes.set(number, episodeVersions);
   }
 
-  const recentEpisodes = [...episodes.keys()]
+  const recentEpisodeNumbers = [...episodes.keys()]
     .sort((left, right) => right - left)
-    .slice(0, 2)
-    .map((number) => `Tập ${number}`);
-  if (recentEpisodes.length === 0) {
+    .slice(0, 2);
+  if (recentEpisodeNumbers.length === 0) {
     throw new Error("Không tìm thấy danh sách tập trên trang nguồn.");
   }
 
-  const episodeNumbers = recentEpisodes[0].match(/\d+/g).map(Number);
+  const latestEpisodeNumber = recentEpisodeNumbers[0];
+  const latestEpisodeVersions = episodes.get(latestEpisodeNumber);
+  const preferredVersion = latestEpisodeVersions.find((episode) => episode.isDubbed)
+    || latestEpisodeVersions.find((episode) => episode.isVietsub);
+  if (!preferredVersion) {
+    throw new Error("Không xác định được bản thuyết minh hoặc Vietsub cho tập mới nhất.");
+  }
+  const episodeNumbers = [latestEpisodeNumber];
   const upcomingEpisode = `Tập ${Math.max(...episodeNumbers) + 1}`;
   let image;
   try {
@@ -118,8 +143,10 @@ export function parseMoviePage(html, sourceUrl) {
   return {
     title,
     posterUrl: image.href,
-    latestEpisode: recentEpisodes[0],
-    previousEpisode: recentEpisodes[1] || "",
+    latestEpisode: `Tập ${latestEpisodeNumber}`,
+    latestEpisodeUrl: preferredVersion.url,
+    latestEpisodeAudio: preferredVersion.isDubbed ? "Thuyết minh" : "Vietsub",
+    previousEpisode: recentEpisodeNumbers[1] ? `Tập ${recentEpisodeNumbers[1]}` : "",
     upcomingEpisode,
   };
 }

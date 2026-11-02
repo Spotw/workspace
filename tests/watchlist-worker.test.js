@@ -38,11 +38,11 @@ class MemoryStatement {
   async run() {
     if (this.query.startsWith("INSERT INTO movie_watchlist")) {
       const [
-        id, source_url, title, poster_url, latest_episode, previous_episode, upcoming_episode,
+        id, source_url, title, poster_url, latest_episode, latest_episode_url, latest_episode_audio, previous_episode, upcoming_episode,
         release_date, schedule_weekday, last_checked_at, sync_error, created_at, updated_at,
       ] = this.values;
       this.database.rows.push({
-        id, source_url, title, poster_url, latest_episode, previous_episode, upcoming_episode,
+        id, source_url, title, poster_url, latest_episode, latest_episode_url, latest_episode_audio, previous_episode, upcoming_episode,
         release_date, schedule_weekday, last_checked_at, sync_error, created_at, updated_at,
       });
       return { meta: { changes: 1 } };
@@ -56,12 +56,12 @@ class MemoryStatement {
 
     if (this.query.startsWith("UPDATE movie_watchlist")) {
       const [
-        title, poster_url, latest_episode, previous_episode, upcoming_episode,
+        title, poster_url, latest_episode, latest_episode_url, latest_episode_audio, previous_episode, upcoming_episode,
         release_date, schedule_weekday, last_checked_at, sync_error, updated_at, id,
       ] = this.values;
       const row = this.database.rows.find((movie) => movie.id === id);
       if (row) Object.assign(row, {
-        title, poster_url, latest_episode, previous_episode, upcoming_episode,
+        title, poster_url, latest_episode, latest_episode_url, latest_episode_audio, previous_episode, upcoming_episode,
         release_date, schedule_weekday, last_checked_at, sync_error, updated_at,
       });
       return { meta: { changes: row ? 1 : 0 } };
@@ -76,8 +76,16 @@ function sourceHtml() {
     <title>Tiên Nghịch - Hoạt Hình 3D | HHKUNGFU</title>
     <meta property="og:title" content="Tiên Nghịch - Hoạt Hình 3D | HHKUNGFU">
     <meta property="og:image" content="https://hhkungfu.ee/poster.jpg">
-    <a href="/watch-tien-nghich/tap-165-sv1.html">Tập 165</a>
-    <a href="/watch-tien-nghich/tap-164-sv1.html">Tập 164</a>
+    <div class="halim-server">
+      <span class="halim-server-name">#Vietsub</span>
+      <a data-ep="tap-165" href="/watch-tien-nghich/tap-165-sv1.html">Tập 165</a>
+      <a data-ep="tap-164" href="/watch-tien-nghich/tap-164-sv1.html">Tập 164</a>
+    </div>
+    <div class="halim-server">
+      <span class="halim-server-name">#Thuyết Minh:</span>
+      <a data-ep="tap-165" href="/watch-tien-nghich/tap-165-sv2.html">Tập 165</a>
+      <a data-ep="tap-164" href="/watch-tien-nghich/tap-164-sv2.html">Tập 164</a>
+    </div>
   `;
 }
 
@@ -117,6 +125,8 @@ test("watchlist API adds scraped metadata, rejects unsupported URLs, and deletes
     assert.equal(added.title, "Tiên Nghịch");
     assert.equal(added.posterUrl, "https://hhkungfu.ee/poster.jpg");
     assert.equal(added.latestEpisode, "Tập 165");
+    assert.equal(added.latestEpisodeUrl, "https://hhkungfu.ee/watch-tien-nghich/tap-165-sv2.html");
+    assert.equal(added.latestEpisodeAudio, "Thuyết minh");
     assert.equal(added.previousEpisode, "Tập 164");
     assert.equal(added.upcomingEpisode, "Tập 166");
     assert.match(added.releaseDate, /^\d{4}-\d{2}-\d{2}$/);
@@ -126,6 +136,8 @@ test("watchlist API adds scraped metadata, rejects unsupported URLs, and deletes
     await worker.scheduled({}, { DB: database }, { waitUntil(promise) { scheduledRefresh = promise; } });
     await scheduledRefresh;
     assert.equal(database.rows[0].latest_episode, "Tập 166");
+    assert.equal(database.rows[0].latest_episode_url, "https://hhkungfu.ee/watch-tien-nghich/tap-166-sv2.html");
+    assert.equal(database.rows[0].latest_episode_audio, "Thuyết minh");
     assert.equal(database.rows[0].previous_episode, "Tập 165");
     assert.equal(database.rows[0].upcoming_episode, "Tập 167");
 

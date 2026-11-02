@@ -16,23 +16,61 @@ test("accepts only HTTPS HHKungfu movie pages", () => {
   assert.throws(() => normalizeMovieUrl("http://hhkungfu.ee/tien-nghich"));
 });
 
-test("extracts a poster and the two latest episodes from a movie page", () => {
+test("prefers the latest dubbed episode link when the source provides it", () => {
   const html = `
     <title>Tiên Nghịch - Hoạt Hình 3D | HHKUNGFU</title>
     <meta property="og:title" content="Tiên Nghịch - Hoạt Hình 3D | HHKUNGFU">
     <meta property="og:image" content="/wp-content/uploads/tien-nghich.jpg">
-    <a href="https://hhkungfu.ee/watch-tien-nghich/tap-165-sv1.html">Tập 165</a>
-    <a href="https://hhkungfu.ee/watch-tien-nghich/tap-164-sv1.html">Tập 164</a>
-    <a href="https://hhkungfu.ee/watch-tien-nghich/tap-163-sv1.html">Tập 163</a>
+    <div class="halim-server">
+      <span class="halim-server-name">#Vietsub</span>
+      <a data-ep="tap-165" href="https://hhkungfu.ee/watch-tien-nghich/tap-165-sv1.html">Tập 165</a>
+      <a data-ep="tap-164" href="https://hhkungfu.ee/watch-tien-nghich/tap-164-sv1.html">Tập 164</a>
+    </div>
+    <div class="halim-server">
+      <span class="halim-server-name">#Thuyết Minh:</span>
+      <a data-ep="tap-165" href="https://hhkungfu.ee/watch-tien-nghich/tap-165-sv2.html">Tập 165</a>
+      <a data-ep="tap-164" href="https://hhkungfu.ee/watch-tien-nghich/tap-164-sv2.html">Tập 164</a>
+    </div>
   `;
 
   assert.deepEqual(parseMoviePage(html, "https://hhkungfu.ee/tien-nghich"), {
     title: "Tiên Nghịch",
     posterUrl: "https://hhkungfu.ee/wp-content/uploads/tien-nghich.jpg",
     latestEpisode: "Tập 165",
+    latestEpisodeUrl: "https://hhkungfu.ee/watch-tien-nghich/tap-165-sv2.html",
+    latestEpisodeAudio: "Thuyết minh",
     previousEpisode: "Tập 164",
     upcomingEpisode: "Tập 166",
   });
+});
+
+test("falls back to the latest Vietsub episode when no dubbed link exists", () => {
+  const html = `
+    <title>Tiên Nghịch - Hoạt Hình 3D | HHKUNGFU</title>
+    <meta property="og:image" content="/poster.jpg">
+    <div class="halim-server">
+      <span class="halim-server-name">#Vietsub</span>
+      <a data-ep="tap-165" href="/watch-tien-nghich/tap-165-sv1.html">Tập 165</a>
+    </div>
+  `;
+
+  assert.equal(
+    parseMoviePage(html, "https://hhkungfu.ee/tien-nghich").latestEpisodeUrl,
+    "https://hhkungfu.ee/watch-tien-nghich/tap-165-sv1.html"
+  );
+});
+
+test("does not mistake an unlabelled version for dubbed or Vietsub", () => {
+  const html = `
+    <title>Tiên Nghịch - Hoạt Hình 3D | HHKUNGFU</title>
+    <meta property="og:image" content="/poster.jpg">
+    <a href="/watch-tien-nghich/tap-165-sv1.html">Tập 165</a>
+  `;
+
+  assert.throws(
+    () => parseMoviePage(html, "https://hhkungfu.ee/tien-nghich"),
+    /Không xác định được bản thuyết minh hoặc Vietsub/
+  );
 });
 
 test("finds titles in weekly schedule pages and computes the next airing date", () => {

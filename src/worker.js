@@ -158,6 +158,8 @@ function getWatchlistRecord(row) {
     title: row.title,
     posterUrl: row.poster_url,
     latestEpisode: row.latest_episode,
+    latestEpisodeUrl: row.latest_episode_url || "",
+    latestEpisodeAudio: row.latest_episode_audio || "Vietsub",
     previousEpisode: row.previous_episode,
     upcomingEpisode: row.upcoming_episode,
     releaseDate: row.release_date || "",
@@ -230,7 +232,7 @@ function getMovieSchedule(showtimes, sourceUrl, previousWeekday) {
 
 async function getWatchlistRows(env) {
   const { results } = await env.DB.prepare(
-    "SELECT id, source_url, title, poster_url, latest_episode, previous_episode, upcoming_episode, release_date, schedule_weekday, last_checked_at, sync_error FROM movie_watchlist ORDER BY created_at DESC"
+    "SELECT id, source_url, title, poster_url, latest_episode, latest_episode_url, latest_episode_audio, previous_episode, upcoming_episode, release_date, schedule_weekday, last_checked_at, sync_error FROM movie_watchlist ORDER BY created_at DESC"
   ).all();
   return results;
 }
@@ -239,13 +241,15 @@ async function saveMovieDetails(env, id, details, schedule, syncError = "") {
   const checkedAt = new Date().toISOString();
   await env.DB.prepare(
     `UPDATE movie_watchlist
-     SET title = ?, poster_url = ?, latest_episode = ?, previous_episode = ?, upcoming_episode = ?,
+     SET title = ?, poster_url = ?, latest_episode = ?, latest_episode_url = ?, latest_episode_audio = ?, previous_episode = ?, upcoming_episode = ?,
          release_date = ?, schedule_weekday = ?, last_checked_at = ?, sync_error = ?, updated_at = ?
      WHERE id = ?`
   ).bind(
     details.title,
     details.posterUrl,
     details.latestEpisode,
+    details.latestEpisodeUrl,
+    details.latestEpisodeAudio,
     details.previousEpisode,
     details.upcomingEpisode,
     schedule.releaseDate,
@@ -339,15 +343,17 @@ async function handleWatchlist(request, env, parts) {
       const checkedAt = new Date().toISOString();
       await env.DB.prepare(
         `INSERT INTO movie_watchlist
-          (id, source_url, title, poster_url, latest_episode, previous_episode, upcoming_episode,
+          (id, source_url, title, poster_url, latest_episode, latest_episode_url, latest_episode_audio, previous_episode, upcoming_episode,
            release_date, schedule_weekday, last_checked_at, sync_error, created_at, updated_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
       ).bind(
         id,
         sourceUrl,
         details.title,
         details.posterUrl,
         details.latestEpisode,
+        details.latestEpisodeUrl,
+        details.latestEpisodeAudio,
         details.previousEpisode,
         details.upcomingEpisode,
         schedule.releaseDate,
@@ -358,7 +364,7 @@ async function handleWatchlist(request, env, parts) {
         checkedAt
       ).run();
       const { results } = await env.DB.prepare(
-        "SELECT id, source_url, title, poster_url, latest_episode, previous_episode, upcoming_episode, release_date, schedule_weekday, last_checked_at, sync_error FROM movie_watchlist WHERE id = ?"
+        "SELECT id, source_url, title, poster_url, latest_episode, latest_episode_url, latest_episode_audio, previous_episode, upcoming_episode, release_date, schedule_weekday, last_checked_at, sync_error FROM movie_watchlist WHERE id = ?"
       ).bind(id).all();
       return json(getWatchlistRecord(results[0]), 201);
     } catch (error) {
