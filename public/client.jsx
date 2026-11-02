@@ -463,6 +463,8 @@ function TasksPanel() {
 }
 
 function App() {
+  const [selectedPanel, setSelectedPanel] = useState("tasks");
+
   return (
     <main id="stage" className="stage">
       <header className="workspace-header">
@@ -470,9 +472,28 @@ function App() {
         <span className="header-status"><span className="live-dot" /> MỘT CHÚT BÌNH YÊN</span>
       </header>
       <div className="dashboard-grid">
-        <ClockPanel />
-        <TasksPanel />
-        <PortalPanel />
+        <div className="clock-section">
+          <ClockPanel />
+          <div className="panel-switcher" role="group" aria-label="Chọn thẻ cần hiển thị">
+            <button
+              className={`panel-switcher-button ${selectedPanel === "tasks" ? "is-active" : ""}`}
+              type="button"
+              aria-pressed={selectedPanel === "tasks"}
+              onClick={() => setSelectedPanel("tasks")}
+            >
+              <CalendarDays size={16} /> Góc cá nhân
+            </button>
+            <button
+              className={`panel-switcher-button ${selectedPanel === "portal" ? "is-active" : ""}`}
+              type="button"
+              aria-pressed={selectedPanel === "portal"}
+              onClick={() => setSelectedPanel("portal")}
+            >
+              <Layers3 size={16} /> Cổng thông tin
+            </button>
+          </div>
+        </div>
+        {selectedPanel === "tasks" ? <TasksPanel /> : <PortalPanel />}
       </div>
     </main>
   );

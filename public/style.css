@@ -43,6 +43,13 @@ button:focus-visible, input:focus-visible, summary:focus-visible, a:focus-visibl
 .header-caption { color: #858da7; font-size: 10px; letter-spacing: 0.08em; }
 .header-status { display: flex; align-items: center; gap: 8px; margin-left: auto; color: #a5adc2; font-size: 9px; font-weight: 600; letter-spacing: 0.1em; }
 .dashboard-grid { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: 18px; }
+.clock-section { display: grid; grid-column: span 7; gap: 12px; min-width: 0; align-content: start; }
+.clock-section .clock-panel { grid-column: 1 / -1; }
+.panel-switcher { display: flex; gap: 8px; padding: 6px; border: 1px solid var(--line); border-radius: 15px; background: var(--surface-soft); }
+.panel-switcher-button { display: flex; flex: 1; align-items: center; justify-content: center; gap: 8px; min-width: 0; padding: 10px 12px; border: 1px solid transparent; border-radius: 10px; background: transparent; color: var(--muted); font-size: 11px; font-weight: 600; transition: background 160ms ease, border-color 160ms ease, color 160ms ease; }
+.panel-switcher-button:hover { color: var(--text); }
+.panel-switcher-button.is-active { border-color: var(--line-strong); background: var(--surface-raised); color: var(--text); }
+.panel-switcher-button svg { flex: none; }
 
 .panel {
   position: relative;
@@ -244,7 +251,7 @@ tbody tr:hover { background: rgba(255, 255, 255, 0.025); }
 @media (max-width: 980px) {
   .stage { padding: 22px 20px 42px; }
   .dashboard-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 15px; }
-  .clock-panel, .portal-panel, .tasks-panel { grid-column: 1 / -1; grid-row: auto; }
+  .clock-section, .clock-panel, .portal-panel, .tasks-panel { grid-column: 1 / -1; grid-row: auto; }
   .clock-panel { min-height: 380px; }
   .portal-panel { min-height: 560px; }
   .tasks-panel { min-height: 460px; }
@@ -255,7 +262,7 @@ tbody tr:hover { background: rgba(255, 255, 255, 0.025); }
   .header-caption { font-size: 8px; }
   .header-status { font-size: 8px; }
   .dashboard-grid { grid-template-columns: minmax(0, 1fr); gap: 13px; }
-  .clock-panel, .portal-panel, .tasks-panel { grid-column: auto; }
+  .clock-section, .clock-panel, .portal-panel, .tasks-panel { grid-column: auto; }
   .clock-panel { min-height: 390px; }
   .clock-panel { padding: 24px; }
   .portal-panel, .tasks-panel { padding: 21px 18px 16px; }
@@ -270,6 +277,8 @@ tbody tr:hover { background: rgba(255, 255, 255, 0.025); }
   .live-pill { gap: 6px; padding: 6px 8px; font-size: 7px; letter-spacing: 0.06em; }
   .hero-footer { font-size: 7px; letter-spacing: 0.08em; }
   .hero-scroll { display: none; }
+  .panel-switcher { gap: 5px; padding: 5px; }
+  .panel-switcher-button { gap: 6px; padding: 9px 5px; font-size: 9px; }
   .panel-heading h2 { font-size: 19px; }
   .portal-toolbar { align-items: flex-start; flex-direction: column; gap: 5px; margin: 0 0 8px; }
   .search-box { width: 100%; }
