@@ -3,6 +3,9 @@
   "name": "workspace",
   "main": "src/worker.js",
   "compatibility_date": "2026-10-21",
+  "triggers": {
+    "crons": ["0 2 * * *"]
+  },
   "observability": {
     "enabled": false,
     "head_sampling_rate": 1,

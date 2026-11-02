@@ -1,6 +1,19 @@
+import {
+  HHKUNGFU_ORIGIN,
+  SHOWTIME_PAGES,
+  extractScheduledSlugs,
+  getNextReleaseDate,
+  normalizeMovieUrl,
+  parseMoviePage,
+  parseRobotsRules,
+  robotsAllows,
+} from "./movie-watchlist.js";
+
 const DAYS = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"];
 const MAX_TASKS_PER_DAY = 20;
 const MAX_TASK_TITLE_LENGTH = 100;
+const MAX_WATCHLIST_ITEMS = 30;
+const MAX_SOURCE_PAGE_LENGTH = 2_000_000;
 
 let tableReady = false;
 
@@ -127,6 +140,236 @@ async function handleTasks(request, env) {
   return json({ tasks: tasksByDate });
 }
 
+function getVietNamToday() {
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone: "Asia/Ho_Chi_Minh",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(new Date());
+  const values = Object.fromEntries(parts.map(({ type, value }) => [type, value]));
+  return `${values.year}-${values.month}-${values.day}`;
+}
+
+function getWatchlistRecord(row) {
+  return {
+    id: row.id,
+    sourceUrl: row.source_url,
+    title: row.title,
+    posterUrl: row.poster_url,
+    latestEpisode: row.latest_episode,
+    previousEpisode: row.previous_episode,
+    upcomingEpisode: row.upcoming_episode,
+    releaseDate: row.release_date || "",
+    lastCheckedAt: row.last_checked_at || "",
+    syncError: row.sync_error || "",
+  };
+}
+
+async function getRobotsRules() {
+  const response = await fetch(`${HHKUNGFU_ORIGIN}/robots.txt`, {
+    headers: { Accept: "text/plain" },
+    redirect: "error",
+    signal: AbortSignal.timeout(10000),
+  });
+  if (!response.ok) throw new Error(`Không đọc được robots.txt của HHKungfu (${response.status}).`);
+  const content = await response.text();
+  if (content.length > 100_000) throw new Error("Tệp robots.txt của HHKungfu quá lớn.");
+  return parseRobotsRules(content);
+}
+
+async function fetchHhkungfuPage(path, rules) {
+  const url = new URL(path, HHKUNGFU_ORIGIN);
+  if (url.origin !== HHKUNGFU_ORIGIN || !robotsAllows(rules, `${url.pathname}${url.search}`)) {
+    throw new Error("robots.txt không cho phép đọc trang nguồn này.");
+  }
+
+  const response = await fetch(url, {
+    headers: { Accept: "text/html", "User-Agent": "WorkspaceMovieWatchlist/1.0" },
+    redirect: "error",
+    signal: AbortSignal.timeout(12000),
+  });
+  if (!response.ok) throw new Error(`HHKungfu trả về lỗi ${response.status} khi đọc trang phim.`);
+  const contentLength = Number(response.headers.get("content-length") || 0);
+  if (contentLength > MAX_SOURCE_PAGE_LENGTH) throw new Error("Trang nguồn phim vượt quá giới hạn kích thước.");
+  const html = await response.text();
+  if (html.length > MAX_SOURCE_PAGE_LENGTH) throw new Error("Trang nguồn phim vượt quá giới hạn kích thước.");
+  return html;
+}
+
+async function readShowtimePages(rules) {
+  const pages = [];
+  const errors = [];
+  for (const [slug, weekday] of SHOWTIME_PAGES) {
+    try {
+      const html = await fetchHhkungfuPage(`/showtimes/${slug}`, rules);
+      pages.push({ weekday, slugs: extractScheduledSlugs(html) });
+    } catch (error) {
+      errors.push(error.message);
+    }
+  }
+  return { pages, complete: errors.length === 0, error: errors[0] || "" };
+}
+
+function getMovieSchedule(showtimes, sourceUrl, previousWeekday) {
+  const slug = new URL(sourceUrl).pathname.slice(1).toLowerCase();
+  const scheduled = showtimes.pages.find((page) => page.slugs.has(slug));
+  const weekday = scheduled?.weekday ?? (!showtimes.complete ? previousWeekday : null);
+  return {
+    weekday,
+    releaseDate: weekday === null ? "" : getNextReleaseDate(weekday, getVietNamToday()),
+    warning: showtimes.complete ? "" : showtimes.error,
+  };
+}
+
+async function getWatchlistRows(env) {
+  const { results } = await env.DB.prepare(
+    "SELECT id, source_url, title, poster_url, latest_episode, previous_episode, upcoming_episode, release_date, schedule_weekday, last_checked_at, sync_error FROM movie_watchlist ORDER BY created_at DESC"
+  ).all();
+  return results;
+}
+
+async function saveMovieDetails(env, id, details, schedule, syncError = "") {
+  const checkedAt = new Date().toISOString();
+  await env.DB.prepare(
+    `UPDATE movie_watchlist
+     SET title = ?, poster_url = ?, latest_episode = ?, previous_episode = ?, upcoming_episode = ?,
+         release_date = ?, schedule_weekday = ?, last_checked_at = ?, sync_error = ?, updated_at = ?
+     WHERE id = ?`
+  ).bind(
+    details.title,
+    details.posterUrl,
+    details.latestEpisode,
+    details.previousEpisode,
+    details.upcomingEpisode,
+    schedule.releaseDate,
+    schedule.weekday,
+    checkedAt,
+    syncError || schedule.warning,
+    checkedAt,
+    id
+  ).run();
+}
+
+async function markMovieSyncError(env, id, error) {
+  const checkedAt = new Date().toISOString();
+  await env.DB.prepare(
+    "UPDATE movie_watchlist SET last_checked_at = ?, sync_error = ?, updated_at = ? WHERE id = ?"
+  ).bind(checkedAt, error.message || "Không thể cập nhật thông tin phim.", checkedAt, id).run();
+}
+
+function hasSameOrigin(request) {
+  return request.headers.get("Origin") === new URL(request.url).origin;
+}
+
+async function refreshWatchlist(env) {
+  const rows = await getWatchlistRows(env);
+  if (rows.length === 0) return;
+
+  let rules;
+  try {
+    rules = await getRobotsRules();
+  } catch (error) {
+    await Promise.all(rows.map((row) => markMovieSyncError(env, row.id, error)));
+    return;
+  }
+  const showtimes = await readShowtimePages(rules);
+
+  for (const row of rows) {
+    try {
+      const sourceUrl = normalizeMovieUrl(row.source_url);
+      const html = await fetchHhkungfuPage(sourceUrl, rules);
+      const details = parseMoviePage(html, sourceUrl);
+      const schedule = getMovieSchedule(showtimes, sourceUrl, row.schedule_weekday);
+      await saveMovieDetails(env, row.id, details, schedule);
+    } catch (error) {
+      console.error(`Movie watchlist refresh failed for ${row.id}:`, error);
+      await markMovieSyncError(env, row.id, error);
+    }
+  }
+}
+
+async function handleWatchlist(request, env, parts) {
+  if (request.method === "GET" && parts.length === 0) {
+    return json((await getWatchlistRows(env)).map(getWatchlistRecord));
+  }
+
+  if (request.method === "POST" && parts.length === 1 && parts[0] === "refresh") {
+    if (!hasSameOrigin(request)) return json({ error: "Yêu cầu không hợp lệ." }, 403);
+    await refreshWatchlist(env);
+    return json((await getWatchlistRows(env)).map(getWatchlistRecord));
+  }
+
+  if (request.method === "POST" && parts.length === 0) {
+    if (!hasSameOrigin(request)) return json({ error: "Yêu cầu không hợp lệ." }, 403);
+
+    const body = await readBody(request);
+    let sourceUrl;
+    try {
+      sourceUrl = normalizeMovieUrl(body?.url);
+    } catch (error) {
+      return json({ error: error.message }, 400);
+    }
+
+    const { results: existing } = await env.DB.prepare(
+      "SELECT id FROM movie_watchlist WHERE source_url = ? LIMIT 1"
+    ).bind(sourceUrl).all();
+    if (existing.length > 0) return json({ error: "Phim này đã có trong danh sách." }, 409);
+
+    const { results: countRows } = await env.DB.prepare(
+      "SELECT COUNT(*) AS count FROM movie_watchlist"
+    ).all();
+    if (countRows[0].count >= MAX_WATCHLIST_ITEMS) {
+      return json({ error: `Danh sách tối đa ${MAX_WATCHLIST_ITEMS} phim.` }, 400);
+    }
+
+    try {
+      const rules = await getRobotsRules();
+      const html = await fetchHhkungfuPage(sourceUrl, rules);
+      const details = parseMoviePage(html, sourceUrl);
+      const showtimes = await readShowtimePages(rules);
+      const schedule = getMovieSchedule(showtimes, sourceUrl, null);
+      const id = crypto.randomUUID();
+      const checkedAt = new Date().toISOString();
+      await env.DB.prepare(
+        `INSERT INTO movie_watchlist
+          (id, source_url, title, poster_url, latest_episode, previous_episode, upcoming_episode,
+           release_date, schedule_weekday, last_checked_at, sync_error, created_at, updated_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+      ).bind(
+        id,
+        sourceUrl,
+        details.title,
+        details.posterUrl,
+        details.latestEpisode,
+        details.previousEpisode,
+        details.upcomingEpisode,
+        schedule.releaseDate,
+        schedule.weekday,
+        checkedAt,
+        schedule.warning,
+        checkedAt,
+        checkedAt
+      ).run();
+      const { results } = await env.DB.prepare(
+        "SELECT id, source_url, title, poster_url, latest_episode, previous_episode, upcoming_episode, release_date, schedule_weekday, last_checked_at, sync_error FROM movie_watchlist WHERE id = ?"
+      ).bind(id).all();
+      return json(getWatchlistRecord(results[0]), 201);
+    } catch (error) {
+      console.error("Movie watchlist add failed:", error);
+      return json({ error: error.message || "Không thể đọc thông tin phim từ HHKungfu." }, 502);
+    }
+  }
+
+  if (request.method === "DELETE" && parts.length === 1) {
+    if (!hasSameOrigin(request)) return json({ error: "Yêu cầu không hợp lệ." }, 403);
+    const { meta } = await env.DB.prepare("DELETE FROM movie_watchlist WHERE id = ?").bind(parts[0]).run();
+    return meta.changes ? json({ ok: true }) : json({ error: "Không tìm thấy phim." }, 404);
+  }
+
+  return json({ error: "Method not allowed" }, 405);
+}
+
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);
@@ -137,6 +380,7 @@ export default {
         if (resource === "entries") return await handleEntries(request, env);
         if (resource === "notes") return await handleNotes(request, env, parts);
         if (resource === "tasks" && parts.length === 0) return await handleTasks(request, env);
+        if (resource === "watchlist") return await handleWatchlist(request, env, parts);
         return json({ error: "Not found" }, 404);
       } catch (err) {
         console.error(err);
@@ -145,5 +389,8 @@ export default {
     }
 
     return env.ASSETS.fetch(request);
+  },
+  async scheduled(_controller, env, context) {
+    context.waitUntil(refreshWatchlist(env).catch((error) => console.error("Scheduled watchlist refresh failed:", error)));
   },
 };

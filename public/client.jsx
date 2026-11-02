@@ -19,16 +19,22 @@ import {
 import coffeeAnimation from "./coffee-steam.json";
 import {
   ArrowRight,
+  BookmarkPlus,
   CalendarDays,
+  CalendarClock,
   Check,
+  Clapperboard,
   Clock3,
   Coffee,
+  ExternalLink,
   Layers3,
   LoaderCircle,
+  Plus,
   RefreshCw,
   Search,
   Sparkles,
   Sun,
+  Trash2,
   X,
 } from "lucide-react";
 const TZ = "Asia/Ho_Chi_Minh";
@@ -241,6 +247,213 @@ function DayLabel({ label, shortLabel, date, isToday }) {
         </FloatingPortal>
       )}
     </>
+  );
+}
+
+function formatWatchDate(value) {
+  if (!value) return "";
+  const date = new Date(`${value}T00:00:00Z`);
+  if (Number.isNaN(date.getTime())) return value;
+  return new Intl.DateTimeFormat("vi-VN", {
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+    timeZone: "UTC",
+  }).format(date);
+}
+
+function formatWatchSyncTime(value) {
+  const date = new Date(value);
+  if (!value || Number.isNaN(date.getTime())) return "";
+  return new Intl.DateTimeFormat("vi-VN", {
+    day: "numeric",
+    month: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+    timeZone: TZ,
+  }).format(date);
+}
+
+function WatchlistPanel() {
+  const [movies, setMovies] = useState([]);
+  const [status, setStatus] = useState("loading");
+  const [loadError, setLoadError] = useState("");
+  const [query, setQuery] = useState("");
+  const [formOpen, setFormOpen] = useState(false);
+  const [sourceUrl, setSourceUrl] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [formError, setFormError] = useState("");
+
+  function openNewMovieForm() {
+    setSourceUrl("");
+    setFormError("");
+    setFormOpen(true);
+  }
+
+  async function loadMovies(refresh = false) {
+    setStatus(refresh ? "refreshing" : "loading");
+    setLoadError("");
+    try {
+      const data = refresh
+        ? await api("/api/watchlist/refresh", { method: "POST" })
+        : await api("/api/watchlist");
+      if (!Array.isArray(data)) throw new Error("Danh sách phim nhận được không hợp lệ.");
+      setMovies(data);
+      setStatus("ready");
+    } catch (error) {
+      setLoadError(error.message);
+      setStatus("error");
+    }
+  }
+
+  useEffect(() => { loadMovies(); }, []);
+
+  async function submitMovie(event) {
+    event.preventDefault();
+    setFormError("");
+    setSaving(true);
+    try {
+      const movie = await api("/api/watchlist", {
+        method: "POST",
+        body: JSON.stringify({ url: sourceUrl.trim() }),
+      });
+      setMovies((current) => [movie, ...current]);
+      setSourceUrl("");
+      setFormOpen(false);
+    } catch (error) {
+      setFormError(error.message);
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function deleteMovie(movie) {
+    if (!window.confirm(`Xóa “${movie.title}” khỏi danh sách muốn xem?`)) return;
+    try {
+      await api(`/api/watchlist/${encodeURIComponent(movie.id)}`, { method: "DELETE" });
+      setMovies((current) => current.filter((item) => item.id !== movie.id));
+    } catch (error) {
+      setLoadError(error.message);
+    }
+  }
+
+  const filteredMovies = movies.filter((movie) =>
+    movie.title.toLocaleLowerCase("vi").includes(query.toLocaleLowerCase("vi"))
+  );
+
+  return (
+    <MotionPanel id="p-watchlist" className="watchlist-panel">
+      <PanelTitle
+        eyebrow="GÓC GIẢI TRÍ"
+        title="Phim muốn xem"
+        icon={Clapperboard}
+        action={(
+          <div className="watchlist-heading-actions">
+            <button className="icon-button" type="button" onClick={() => loadMovies(true)} disabled={status === "loading" || status === "refreshing"} aria-label="Cập nhật phim ngay">
+              <RefreshCw size={15} className={status === "refreshing" ? "spin" : ""} />
+            </button>
+            <button className="watchlist-add-button" type="button" onClick={openNewMovieForm}>
+              <Plus size={15} /> Thêm phim
+            </button>
+          </div>
+        )}
+      />
+      {loadError && status !== "error" && <p className="watchlist-error" role="alert">{loadError}</p>}
+      {formOpen && (
+        <form className="watchlist-form" onSubmit={submitMovie}>
+          <div className="watchlist-form-heading">
+            <strong>Thêm phim vào danh sách</strong>
+            <button className="icon-button" type="button" onClick={() => setFormOpen(false)} disabled={saving} aria-label="Đóng biểu mẫu">
+              <X size={16} />
+            </button>
+          </div>
+          <label className="watchlist-field">
+            Dán đường dẫn trang phim HHKungfu
+            <input
+              autoFocus
+              type="url"
+              maxLength={500}
+              value={sourceUrl}
+              onChange={(event) => setSourceUrl(event.target.value)}
+              placeholder="https://hhkungfu.ee/ten-phim"
+              required
+            />
+          </label>
+          <span className="watchlist-form-hint">Poster, tập mới nhất và lịch chiếu sẽ được đọc từ trang phim.</span>
+          {formError && <p className="watchlist-error" role="alert">{formError}</p>}
+          <div className="watchlist-form-actions">
+            <button className="watchlist-cancel-button" type="button" onClick={() => setFormOpen(false)} disabled={saving}>Hủy</button>
+            <button className="watchlist-save-button" type="submit" disabled={saving}>
+              {saving ? <><LoaderCircle size={14} className="spin" /> Đang dò phim…</> : "Thêm phim"}
+            </button>
+          </div>
+        </form>
+      )}
+      <div className="watchlist-toolbar">
+        <span><strong>{movies.length.toString().padStart(2, "0")}</strong> phim trong danh sách</span>
+        <label className="search-box">
+          <Search size={15} />
+          <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Tìm phim…" aria-label="Tìm phim trong danh sách" />
+          {query && <button type="button" onClick={() => setQuery("")} aria-label="Xóa tìm kiếm"><X size={14} /></button>}
+        </label>
+      </div>
+      <div className="watchlist-movies">
+        {status === "loading" ? (
+          <div className="state-message"><LoaderCircle className="spin" size={20} /> Đang tải danh sách phim…</div>
+        ) : status === "error" ? (
+          <div className="state-message state-error"><span>{loadError}</span><button className="text-button" type="button" onClick={() => loadMovies()}>Thử lại</button></div>
+        ) : filteredMovies.length === 0 ? (
+          <div className="empty-state watchlist-empty">
+            <span className="empty-icon"><BookmarkPlus size={21} /></span>
+            <strong>{query ? "Không tìm thấy phim" : "Danh sách của bạn đang trống"}</strong>
+            <span>{query ? "Thử từ khóa khác nhé." : "Dán liên kết phim HHKungfu để tự lấy poster, tập mới và lịch chiếu."}</span>
+          </div>
+        ) : filteredMovies.map((movie, index) => (
+          <motion.article
+            className="watchlist-movie"
+            key={movie.id}
+            initial={reduceMotion ? false : { opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: index * 0.04 }}
+          >
+            <div className="watchlist-poster">
+              <span className="watchlist-poster-placeholder"><Clapperboard size={23} /></span>
+              {movie.posterUrl && <img src={movie.posterUrl} alt={`Poster phim ${movie.title}`} loading="lazy" onError={(event) => { event.currentTarget.style.display = "none"; }} />}
+            </div>
+            <div className="watchlist-movie-content">
+              <div className="watchlist-movie-heading">
+                <h3><a href={movie.sourceUrl} target="_blank" rel="noreferrer">{movie.title}</a></h3>
+                <div className="watchlist-movie-actions">
+                  <a className="watchlist-action-button" href={movie.sourceUrl} target="_blank" rel="noreferrer" aria-label={`Mở trang phim ${movie.title}`} title="Mở trang phim"><ExternalLink size={14} /></a>
+                  <button className="watchlist-action-button watchlist-delete-button" type="button" onClick={() => deleteMovie(movie)} aria-label={`Xóa ${movie.title}`} title="Xóa phim"><Trash2 size={14} /></button>
+                </div>
+              </div>
+              <div className="watchlist-episodes">
+                <div className="watchlist-episode">
+                  <span className="watchlist-episode-status">MỚI NHẤT</span>
+                  <strong>{movie.latestEpisode}</strong>
+                </div>
+                <div className="watchlist-episode">
+                  <span className="watchlist-episode-status">TRƯỚC ĐÓ</span>
+                  <strong>{movie.previousEpisode || "Chưa có"}</strong>
+                </div>
+                <div className="watchlist-episode is-upcoming">
+                  <span className="watchlist-episode-status"><CalendarClock size={12} /> SẮP CHIẾU</span>
+                  <strong>{movie.upcomingEpisode}</strong>
+                  <span className="watchlist-release-date">{movie.releaseDate ? `Dự kiến ${formatWatchDate(movie.releaseDate)}` : "Nguồn chưa công bố lịch chiếu."}</span>
+                </div>
+              </div>
+              <div className="watchlist-sync-info">
+                {movie.syncError
+                  ? <span className="watchlist-sync-warning">{movie.syncError}</span>
+                  : <span>Cập nhật {formatWatchSyncTime(movie.lastCheckedAt) || "vừa xong"}</span>}
+              </div>
+            </div>
+          </motion.article>
+        ))}
+      </div>
+      <div className="panel-footnote"><span className="live-dot" /> TỰ ĐỒNG BỘ MỖI NGÀY <span className="footnote-right">HHKUNGFU</span></div>
+    </MotionPanel>
   );
 }
 
@@ -491,9 +704,17 @@ function App() {
             >
               <Layers3 size={16} /> Cổng thông tin
             </button>
+            <button
+              className={`panel-switcher-button ${selectedPanel === "watchlist" ? "is-active" : ""}`}
+              type="button"
+              aria-pressed={selectedPanel === "watchlist"}
+              onClick={() => setSelectedPanel("watchlist")}
+            >
+              <Clapperboard size={16} /> Phim muốn xem
+            </button>
           </div>
         </div>
-        {selectedPanel === "tasks" ? <TasksPanel /> : <PortalPanel />}
+        {selectedPanel === "tasks" ? <TasksPanel /> : selectedPanel === "portal" ? <PortalPanel /> : <WatchlistPanel />}
       </div>
     </main>
   );
