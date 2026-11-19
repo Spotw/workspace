@@ -15,27 +15,11 @@ const MAX_TASK_TITLE_LENGTH = 100;
 const MAX_WATCHLIST_ITEMS = 30;
 const MAX_SOURCE_PAGE_LENGTH = 2_000_000;
 
-let tableReady = false;
-
 const json = (data, status = 200) =>
   new Response(JSON.stringify(data), {
     status,
     headers: { "Content-Type": "application/json; charset=utf-8", "Cache-Control": "no-store" },
   });
-
-async function ensureTable(env) {
-  if (tableReady) return;
-  //await env.DB.prepare(
-    //`CREATE TABLE IF NOT EXISTS workspace_entries (
-    //  id INTEGER PRIMARY KEY AUTOINCREMENT,
-    //  loai TEXT NOT NULL,
-    //  mo_ta TEXT NOT NULL,
-    //  noi_dung TEXT NOT NULL DEFAULT '',
-    //  created_at TEXT NOT NULL DEFAULT (datetime('now'))
-   // )`
-  //).run();
-  tableReady = true;
-}
 
 async function readBody(request) {
   try {
@@ -43,27 +27,6 @@ async function readBody(request) {
   } catch {
     return null;
   }
-}
-
-async function handleEntries(request, env, parts) {
-  await ensureTable(env);
-
-  if (request.method === "GET" && parts.length === 0) {
-    const { results } = await env.DB.prepare(
-      "SELECT id, loai_thong_tin, mo_ta, noi_dung, created_at FROM entries WHERE deleted_at IS NULL ORDER BY id DESC LIMIT 100"
-    ).all();
-    return json(results);
-  }
-
-  if (request.method === "DELETE" && parts.length === 1) {
-    if (!hasSameOrigin(request)) return json({ error: "Yêu cầu không hợp lệ." }, 403);
-    const { meta } = await env.DB.prepare(
-      "UPDATE entries SET deleted_at = datetime('now') WHERE id = ? AND deleted_at IS NULL"
-    ).bind(parts[0]).run();
-    return meta.changes ? json({ ok: true }) : json({ error: "Không tìm thấy thông tin." }, 404);
-  }
-
-  return json({ error: "Method not allowed" }, 405);
 }
 
 async function handleNotes(request, env, parts) {
@@ -397,7 +360,6 @@ export default {
     if (url.pathname.startsWith("/api/")) {
       const [resource, ...parts] = url.pathname.slice(5).split("/").filter(Boolean);
       try {
-        if (resource === "entries") return await handleEntries(request, env, parts);
         if (resource === "notes") return await handleNotes(request, env, parts);
         if (resource === "tasks" && parts.length === 0) return await handleTasks(request, env);
         if (resource === "watchlist") return await handleWatchlist(request, env, parts);
