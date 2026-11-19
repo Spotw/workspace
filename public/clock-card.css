@@ -1,0 +1,65 @@
+body { background: radial-gradient(ellipse at 22% 0%, #1d140f, #100b08 90%); }
+.workspace-header .header-caption, .workspace-header .header-status { color: #c5ad96; }
+.clock-panel.kyoto-card {
+  --text: #241710; --muted: #523d30; --cyan: #677d50;
+  position: relative; isolation: isolate; color-scheme: light; color: #241710;
+  min-height: 496px; padding: 28px 30px 20px; display: flex; flex-direction: column;
+  background: radial-gradient(ellipse at 85% 38%, #f4e1be88, transparent 52%), linear-gradient(125deg, #fcf8f0, #efe3d0);
+  border: 1px solid #dec9ac; border-radius: 22px; backdrop-filter: none;
+  box-shadow: 0 24px 64px #0004, inset 0 1px 0 #fff9;
+  font-family: Inter, sans-serif; font-size: 14px; line-height: 1.6;
+  transform-origin: center; will-change: transform;
+}
+.kyoto-card::after { display: none; }
+.kyoto-topline { position: relative; z-index: 2; display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+.kyoto-brand { display: flex; align-items: center; gap: 10px; font-size: 15px; font-weight: 700; letter-spacing: .16em; line-height: 1.2; }
+.kyoto-mark { display: grid; place-items: center; width: 38px; height: 38px; border: 1px solid #ad5c3338; color: #ad5c33; border-radius: 50%; }
+.kyoto-brand-sub { display: block; margin-top: 6px; font-size: 10.5px; letter-spacing: .09em; color: #685142; font-weight: 500; }
+.kyoto-mode { display: inline-flex; align-items: center; gap: 6px; padding: 7px 10px; background: #fcf8f0b3; border: 1px solid #cbb79c; border-radius: 20px; color: #523d30; font-size: 10.5px; white-space: nowrap; }
+.kyoto-mode:hover, .kyoto-bloom:hover { background: #ead7bd; }
+.kyoto-copy { position: relative; z-index: 1; width: 60%; margin-top: 32px; pointer-events: none; }
+.kyoto-kicker { display: flex; align-items: center; gap: 7px; color: #677d50; font-size: 11px; font-weight: 500; }
+.kyoto-kicker > span { width: 17px; height: 1px; background: #677d50; }
+.kyoto-card h1 { margin: 12px 0 0; font-family: Inter, sans-serif; font-size: clamp(26px, 2.7vw, 38px); line-height: 1.27; letter-spacing: -.05em; font-weight: 700; font-style: normal; }
+.kyoto-card h1 span { color: #ad5c33; font-weight: 600; }
+.kyoto-quote { min-height: 42px; max-width: 300px; margin: 14px 0 24px; color: #685142; font-size: 12px; line-height: 1.75; }
+.kyoto-clock-label { font-size: 10.5px; font-weight: 600; letter-spacing: .1em; color: #523d30; }
+.kyoto-clock-label span { margin-left: 9px; font-weight: 400; color: #685142; letter-spacing: .025em; }
+.kyoto-time { display: flex; align-items: baseline; width: max-content; margin: 6px 0; font-family: Inter, sans-serif; font-size: clamp(40px, 4.6vw, 64px); line-height: 1.15; letter-spacing: -.055em; font-weight: 600; font-variant-numeric: tabular-nums; }
+.kyoto-colon { opacity: .45; margin: 0 .045em; transform: translateY(-.025em); }
+.kyoto-date { color: #523d30; font-size: 12px; text-transform: capitalize; }
+.kyoto-pills { display: flex; flex-wrap: wrap; gap: 7px; margin: 18px 0 23px; }
+.kyoto-pills span { padding: 4px 9px; border: 1px solid #ad5c3338; border-radius: 5px; color: #8d4524; background: #ad5c3309; font-size: 10.5px; font-weight: 500; letter-spacing: .025em; }
+.kyoto-pills span + span { color: #53643f; border-color: #677d5038; background: #677d5008; }
+.kyoto-scene-wrap { position: absolute; top: 70px; right: 0; width: 47%; height: 350px; }
+.kyoto-scene { width: 100%; height: 100%; touch-action: pan-y; }
+.kyoto-scene canvas { display: block; width: 100%; height: 100%; outline-offset: -5px; }
+.kyoto-scene-caption { position: absolute; bottom: 3px; left: 0; right: 0; text-align: center; font-size: 10.5px; letter-spacing: .1em; color: #685142; pointer-events: none; }
+.kyoto-scene-fallback { position: absolute; top: 30%; width: 100%; padding: 20px; text-align: center; color: #685142; font-size: 12px; }
+.kyoto-card .kyoto-cat { width: 92px; right: 28px; bottom: 45px; filter: drop-shadow(0 4px 5px #68402118); }
+.kyoto-cat .cat-zzz { fill: #a77751; }
+.kyoto-footer { position: relative; z-index: 2; margin-top: auto; padding-top: 13px; border-top: 1px solid #95734f30; display: flex; align-items: center; justify-content: space-between; gap: 12px; color: #685142; font-size: 10.5px; }
+.kyoto-footer-translation { margin-left: 10px; }
+.kyoto-bloom { padding: 4px 0 4px 8px; border: 0; border-radius: 5px; color: #8d4524; background: transparent; font-size: 10.5px; }
+.kyoto-bloom span { margin-left: 5px; }
+@media (min-width: 981px) and (max-width: 1150px) { .kyoto-card h1 { font-size: 26px; } .kyoto-time { font-size: 44px; } .kyoto-footer-translation { display: none; } .clock-panel.kyoto-card { padding: 24px; } }
+@media (min-width: 481px) and (max-width: 980px) { .kyoto-card h1 { font-size: 36px; } .kyoto-time { font-size: 60px; } .kyoto-scene-wrap { width: 44%; } }
+@media (min-width: 481px) and (max-width: 620px) { .kyoto-card h1 { font-size: 28px; } .kyoto-time { font-size: 45px; } .kyoto-footer-translation { display: none; } }
+@media (max-width: 480px) {
+  .clock-panel.kyoto-card { min-height: 480px; padding: 22px 20px 17px; transform: none !important; }
+  .kyoto-copy { width: 100%; margin-top: 29px; }
+  .kyoto-card h1 { font-size: clamp(25px, 7.2vw, 33px); }
+  .kyoto-time { font-size: clamp(40px, 12vw, 54px); }
+  .kyoto-quote { max-width: 270px; }
+  .kyoto-brand-sub { font-size: 10.5px; letter-spacing: 0; }
+  .kyoto-brand { font-size: 14px; gap: 7px; }
+  .kyoto-mark { width: 30px; height: 30px; }
+  .kyoto-mode { padding: 7px; }
+  .kyoto-scene-wrap { display: none; }
+  .kyoto-card .kyoto-cat { width: 73px; right: 11px; bottom: 52px; opacity: 1; }
+  .kyoto-pills { max-width: calc(100% - 58px); gap: 5px; }
+  .kyoto-date { max-width: 100%; }
+  .kyoto-footer-translation { display: none; }
+  .kyoto-footer { gap: 6px; }
+}
+@media (prefers-reduced-motion: reduce) { .kyoto-card { transform: none !important; will-change: auto; } .kyoto-card .cat-body, .kyoto-card .cat-tail, .kyoto-card .cat-zzz { animation: none; } }
