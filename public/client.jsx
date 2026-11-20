@@ -323,7 +323,7 @@ function WatchlistPanel() {
           </div>
         ) : filteredMovies.map((movie, index) => (
           <motion.article
-            className="watchlist-movie"
+            className="watchlist-movie watchlist-scroll-card"
             key={movie.id}
             initial={reduceMotion ? false : { opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
