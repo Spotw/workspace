@@ -247,6 +247,7 @@ button:focus-visible, input:focus-visible, summary:focus-visible, a:focus-visibl
   .header-status { font-size: 8px; }
   .dashboard-grid { grid-template-columns: minmax(0, 1fr); gap: 13px; }
   .clock-section, .clock-panel, .tasks-panel { grid-column: auto; }
+  .clock-section .panel-switcher { order: 1; }
   .clock-panel { min-height: 390px; }
   .clock-panel { padding: 24px; }
   .tasks-panel { padding: 21px 18px 16px; }
