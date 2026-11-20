@@ -310,7 +310,7 @@ function WatchlistPanel() {
           {query && <button type="button" onClick={() => setQuery("")} aria-label="Xóa tìm kiếm"><X size={14} /></button>}
         </label>
       </div>
-      <div className="watchlist-movies">
+      <div className={`watchlist-movies${filteredMovies.length && status !== "loading" && status !== "error" ? " is-stacking" : ""}`} tabIndex={0} role="region" aria-label="Danh sách phim muốn xem">
         {status === "loading" ? (
           <div className="state-message"><LoaderCircle className="spin" size={20} /> Đang tải danh sách phim…</div>
         ) : status === "error" ? (
@@ -325,9 +325,7 @@ function WatchlistPanel() {
           <motion.article
             className="watchlist-movie watchlist-scroll-card"
             key={movie.id}
-            initial={reduceMotion ? false : { opacity: 0, y: 8 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: index * 0.04 }}
+            style={{ "--stack-offset": `${Math.min(index, 4) * 12}px` }}
           >
             <div className="watchlist-poster">
               <span className="watchlist-poster-placeholder"><Clapperboard size={23} /></span>
@@ -473,7 +471,6 @@ function App() {
       </header>
       <div className="dashboard-grid">
         <div className="clock-section">
-          <ClockPanel />
           <div className="panel-switcher" role="group" aria-label="Chọn thẻ cần hiển thị">
             <button
               className={`panel-switcher-button ${selectedPanel === "tasks" ? "is-active" : ""}`}
@@ -492,6 +489,7 @@ function App() {
               <Clapperboard size={16} /> Phim muốn xem
             </button>
           </div>
+          <ClockPanel />
         </div>
         {selectedPanel === "tasks" ? <TasksPanel /> : <WatchlistPanel />}
       </div>

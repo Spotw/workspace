@@ -295,19 +295,24 @@ button:focus-visible, input:focus-visible, summary:focus-visible, a:focus-visibl
 .watchlist-toolbar .search-box { width: min(185px, 55%); }
 .watchlist-movies { display: grid; flex: 1; align-content: start; gap: 10px; min-height: 0; overflow: auto; padding: 2px 3px 4px 0; scrollbar-color: rgba(169, 104, 67, 0.3) transparent; scrollbar-width: thin; }
 .watchlist-movie { display: flex; gap: 13px; min-width: 0; padding: 11px; border: 1px solid rgba(91, 61, 39, 0.11); border-radius: 14px; background: rgba(120, 83, 52, 0.035); }
-.watchlist-scroll-card { transform-origin: center top; will-change: transform, opacity, filter; }
-@supports (animation-timeline: view()) {
-  .watchlist-scroll-card {
-    animation: watchlist-card-scroll linear both;
-    animation-timeline: view();
-    animation-range: entry 0% exit 100%;
-  }
+.watchlist-movies.is-stacking {
+  --watchlist-height: clamp(320px, 65svh, 600px);
+  display: block;
+  flex: none;
+  max-height: var(--watchlist-height);
+  padding: 4px 5px max(24px, calc(var(--watchlist-height) - 240px)) 2px;
+  isolation: isolate;
+  scroll-padding-top: 60px;
 }
-@keyframes watchlist-card-scroll {
-  0% { opacity: 0.38; filter: blur(1.5px); transform: scale(0.91) translateY(24px); }
-  18%, 72% { opacity: 1; filter: blur(0); transform: scale(1) translateY(0); }
-  100% { opacity: 0.54; filter: blur(0.8px); transform: scale(0.93) translateY(-12px); }
+.watchlist-scroll-card {
+  position: sticky;
+  top: var(--stack-offset);
+  margin-bottom: 14px;
+  background: #fffdf8;
+  box-shadow: 0 -3px 12px rgba(91, 61, 39, 0.06), 0 8px 18px rgba(91, 61, 39, 0.08);
 }
+.watchlist-scroll-card:last-child { margin-bottom: 0; }
+.watchlist-scroll-card:focus-within { z-index: 1; }
 .watchlist-poster { position: relative; width: 76px; flex: none; overflow: hidden; aspect-ratio: 2 / 3; border: 1px solid rgba(91, 61, 39, 0.1); border-radius: 9px; background: linear-gradient(145deg, rgba(169, 104, 67, 0.13), rgba(114, 123, 82, 0.12)); }
 .watchlist-poster-placeholder { position: absolute; inset: 0; display: grid; place-items: center; color: #a96843; }
 .watchlist-poster img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
@@ -598,4 +603,6 @@ button:focus-visible, input:focus-visible, summary:focus-visible, a:focus-visibl
 }
 @media (prefers-reduced-motion: reduce) {
   .cat-body, .cat-tail, .cat-zzz, .watchlist-scroll-card { animation: none; }
+  .watchlist-scroll-card { position: relative; top: auto; }
+  .watchlist-movies.is-stacking { padding-bottom: 4px; }
 }
