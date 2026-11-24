@@ -222,9 +222,9 @@ button:focus-visible, input:focus-visible, summary:focus-visible, a:focus-visibl
 .task-day-row.today .day-full { color: #d5d8e8; }
 .task-items { display: grid; width: 100%; min-width: 0; gap: 5px; }
 .weekly-task { display: flex; align-items: flex-start; gap: 7px; min-width: 0; padding: 7px 9px; border: 1px solid rgba(183, 195, 231, 0.1); border-radius: 10px; background: rgba(5, 8, 16, 0.28); }
-.task-check { display: grid; width: 15px; height: 15px; flex: none; place-items: center; border: 1px solid rgba(183, 195, 231, 0.2); border-radius: 5px; color: var(--cyan); }
+.task-check { display: grid; width: 15px; height: 15px; flex: none; place-items: center; border: 1px solid rgba(183, 195, 231, 0.2); border-radius: 50%; color: var(--cyan); }
 .weekly-task-title { min-width: 0; overflow-wrap: anywhere; color: #e0e3ef; font-size: 10px; }
-.weekly-task.is-done .weekly-task-title { color: #929ab2; text-decoration: line-through; }
+.weekly-task.is-done .weekly-task-title { color: #929ab2; }
 .empty-day { padding: 5px 2px; color: #737c96; font-size: 10px; }
 .tasks-status { gap: 7px; min-height: 29px; margin-top: 9px; border-top: 1px solid rgba(183, 195, 231, 0.075); color: #858da7; font-size: 9px; }
 .tasks-status > svg { color: #b19eff; }
