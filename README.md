@@ -21,6 +21,6 @@ npx wrangler deploy
 
 Vite builds the static site into `dist/`, which is served by the Cloudflare Worker configured in `wrangler.jsonc`. The Worker continues to serve the `/api/*` endpoints.
 
-Apply pending D1 migrations before deploying the Worker. The daily refresh trigger becomes active when the Worker is deployed.
+Apply pending D1 migrations before deploying the Worker. The daily refresh trigger becomes active when the Worker is deployed. The watchlist puts movies with newly detected episodes first; refreshes without a newer episode keep the existing order. Movies without a recorded episode update are sorted by when they were added.
 
 Weekly tasks are read-only in the dashboard. `/api/tasks?week=YYYY-MM-DD` reads the Monday-to-Sunday task records from the `schedule_duyvu` D1 table. Each row stores its date in `date` and the task-list JSON in `tasks`.

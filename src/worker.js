@@ -203,17 +203,19 @@ function getMovieSchedule(showtimes, sourceUrl, previousWeekday) {
 
 async function getWatchlistRows(env) {
   const { results } = await env.DB.prepare(
-    "SELECT id, source_url, title, poster_url, latest_episode, latest_episode_url, latest_episode_audio, previous_episode, upcoming_episode, release_date, schedule_weekday, last_checked_at, sync_error FROM movie_watchlist ORDER BY created_at DESC"
+    "SELECT id, source_url, title, poster_url, latest_episode, latest_episode_url, latest_episode_audio, previous_episode, upcoming_episode, release_date, schedule_weekday, last_checked_at, sync_error, episode_updated_at, created_at FROM movie_watchlist ORDER BY COALESCE(episode_updated_at, created_at) DESC, created_at DESC, id ASC"
   ).all();
   return results;
 }
 
-async function saveMovieDetails(env, id, details, schedule, syncError = "") {
+async function saveMovieDetails(env, row, details, schedule, syncError = "") {
   const checkedAt = new Date().toISOString();
+  const hasNewEpisode = Number(details.latestEpisode.match(/\d+/)?.[0])
+    > Number(row.latest_episode.match(/\d+/)?.[0]);
   await env.DB.prepare(
     `UPDATE movie_watchlist
      SET title = ?, poster_url = ?, latest_episode = ?, latest_episode_url = ?, latest_episode_audio = ?, previous_episode = ?, upcoming_episode = ?,
-         release_date = ?, schedule_weekday = ?, last_checked_at = ?, sync_error = ?, updated_at = ?
+         release_date = ?, schedule_weekday = ?, last_checked_at = ?, sync_error = ?, updated_at = ?, episode_updated_at = ?
      WHERE id = ?`
   ).bind(
     details.title,
@@ -228,7 +230,8 @@ async function saveMovieDetails(env, id, details, schedule, syncError = "") {
     checkedAt,
     syncError || schedule.warning,
     checkedAt,
-    id
+    hasNewEpisode ? checkedAt : row.episode_updated_at,
+    row.id
   ).run();
 }
 
@@ -262,7 +265,7 @@ async function refreshWatchlist(env) {
       const html = await fetchHhkungfuPage(sourceUrl, rules);
       const details = parseMoviePage(html, sourceUrl);
       const schedule = getMovieSchedule(showtimes, sourceUrl, row.schedule_weekday);
-      await saveMovieDetails(env, row.id, details, schedule);
+      await saveMovieDetails(env, row, details, schedule);
     } catch (error) {
       console.error(`Movie watchlist refresh failed for ${row.id}:`, error);
       await markMovieSyncError(env, row.id, error);

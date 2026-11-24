@@ -32,7 +32,11 @@ class MemoryStatement {
     if (this.query.includes("WHERE id =")) {
       return { results: this.database.rows.filter((row) => row.id === this.values[0]) };
     }
-    return { results: [...this.database.rows].sort((a, b) => b.created_at.localeCompare(a.created_at)) };
+    assert.match(this.query, /ORDER BY COALESCE\(episode_updated_at, created_at\) DESC, created_at DESC, id ASC/);
+    return { results: [...this.database.rows].sort((a, b) =>
+      (b.episode_updated_at ?? b.created_at).localeCompare(a.episode_updated_at ?? a.created_at)
+      || b.created_at.localeCompare(a.created_at) || a.id.localeCompare(b.id)
+    ) };
   }
 
   async run() {
@@ -43,7 +47,7 @@ class MemoryStatement {
       ] = this.values;
       this.database.rows.push({
         id, source_url, title, poster_url, latest_episode, latest_episode_url, latest_episode_audio, previous_episode, upcoming_episode,
-        release_date, schedule_weekday, last_checked_at, sync_error, created_at, updated_at,
+        release_date, schedule_weekday, last_checked_at, sync_error, created_at, updated_at, episode_updated_at: null,
       });
       return { meta: { changes: 1 } };
     }
@@ -54,15 +58,22 @@ class MemoryStatement {
       return { meta: { changes: initialLength - this.database.rows.length } };
     }
 
+    if (this.query.startsWith("UPDATE movie_watchlist SET last_checked_at")) {
+      const [last_checked_at, sync_error, updated_at, id] = this.values;
+      const row = this.database.rows.find((movie) => movie.id === id);
+      if (row) Object.assign(row, { last_checked_at, sync_error, updated_at });
+      return { meta: { changes: row ? 1 : 0 } };
+    }
+
     if (this.query.startsWith("UPDATE movie_watchlist")) {
       const [
         title, poster_url, latest_episode, latest_episode_url, latest_episode_audio, previous_episode, upcoming_episode,
-        release_date, schedule_weekday, last_checked_at, sync_error, updated_at, id,
+        release_date, schedule_weekday, last_checked_at, sync_error, updated_at, episode_updated_at, id,
       ] = this.values;
       const row = this.database.rows.find((movie) => movie.id === id);
       if (row) Object.assign(row, {
         title, poster_url, latest_episode, latest_episode_url, latest_episode_audio, previous_episode, upcoming_episode,
-        release_date, schedule_weekday, last_checked_at, sync_error, updated_at,
+        release_date, schedule_weekday, last_checked_at, sync_error, updated_at, episode_updated_at,
       });
       return { meta: { changes: row ? 1 : 0 } };
     }
@@ -161,6 +172,66 @@ test("watchlist API adds scraped metadata, rejects unsupported URLs, and deletes
     }), { DB: database });
     assert.equal(deleteResponse.status, 200);
     assert.equal(database.rows.length, 0);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+test("new episodes move older movies first and ordinary or failed refreshes preserve that order", async () => {
+  const database = new MemoryD1();
+  database.rows = ["older", "newer"].map((id, index) => ({
+    id,
+    source_url: `https://hhkungfu.ee/${id}`,
+    latest_episode: "Tập 165",
+    schedule_weekday: null,
+    episode_updated_at: null,
+    created_at: `2020-01-0${index + 1}T00:00:00.000Z`,
+  }));
+  const originalFetch = globalThis.fetch;
+  let episode = 165;
+  let unavailable = false;
+  globalThis.fetch = async (input) => {
+    const url = new URL(input);
+    if (url.pathname === "/robots.txt") {
+      return new Response("User-agent: *\nAllow: /", { status: unavailable ? 503 : 200 });
+    }
+    if (url.pathname.startsWith("/showtimes/")) {
+      return new Response('<main id="main-contents"></main>');
+    }
+    const slug = url.pathname.slice(1);
+    return new Response(sourceHtml().replaceAll("tien-nghich", slug)
+      .replaceAll("165", String(slug === "older" ? episode : 165)));
+  };
+  const getOrder = async () => {
+    const response = await worker.fetch(new Request("https://workspace.test/api/watchlist"), { DB: database });
+    assert.equal(response.status, 200);
+    return (await response.json()).map((movie) => movie.id);
+  };
+  const refresh = async () => {
+    const response = await worker.fetch(new Request("https://workspace.test/api/watchlist/refresh", {
+      method: "POST", headers: { Origin: "https://workspace.test" },
+    }), { DB: database });
+    assert.equal(response.status, 200);
+    return (await response.json()).map((movie) => movie.id);
+  };
+  try {
+    assert.deepEqual(await getOrder(), ["newer", "older"]);
+    assert.deepEqual(await refresh(), ["newer", "older"]);
+    episode = 166;
+    assert.deepEqual(await refresh(), ["older", "newer"]);
+    const updatedAt = database.rows[0].episode_updated_at;
+    assert.ok(updatedAt);
+    assert.equal(database.rows[1].episode_updated_at, null);
+    assert.deepEqual(await getOrder(), ["older", "newer"]);
+    assert.deepEqual(await refresh(), ["older", "newer"]);
+    assert.equal(database.rows[0].episode_updated_at, updatedAt);
+    episode = 165;
+    assert.deepEqual(await refresh(), ["older", "newer"]);
+    assert.equal(database.rows[0].episode_updated_at, updatedAt);
+    unavailable = true;
+    assert.deepEqual(await refresh(), ["older", "newer"]);
+    assert.equal(database.rows[0].episode_updated_at, updatedAt);
+    assert.ok(database.rows.every((row) => row.sync_error));
   } finally {
     globalThis.fetch = originalFetch;
   }
